@@ -1,0 +1,35 @@
+function fo = do_fsl_reslice(src,ref,prefix,interp)
+%function fo = do_fsl_reslice(src,ref,prefix)
+%if iscell(prefix) prefix is then the matrix output
+
+if ~exist('prefix')
+    prefix='rfsl_';
+end
+
+if ~exist('interp')
+    interp = 'trilinear';
+end
+
+if iscell(prefix)
+    for k=1:length(ref)
+        cmd = sprintf('flirt -in %s -ref %s -omat %s  -usesqform -applyxfm -interp %s ',src{k},ref{k},prefix{k},interp);
+        unix(cmd);
+    end
+    
+else
+    
+    fo = addprefixtofilenames(src,prefix);
+    
+    for k=1:length(ref)
+        ff = cellstr(src{k});
+        ffo = cellstr(fo{k});
+        
+        for kk=1:length(ff)
+            cmd = sprintf('flirt -in %s -ref %s -out %s  -usesqform -applyxfm  -interp %s ',ff{kk},ref{k},ffo{kk});
+            unix(cmd);
+            
+        end
+        
+    end
+    
+end

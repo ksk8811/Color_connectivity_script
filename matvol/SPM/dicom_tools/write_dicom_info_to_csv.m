@@ -1,0 +1,121 @@
+function hhout=write_dicom_info_to_csv(ff,csvname,matlabsavename,fieldlist)
+%function write_dicom_info_to_csv(ff,csv_file_name,fieldlist)
+% function to extract the dicom parameters of a liste of dicom files and write it to a csv file
+% ff list of file
+% fieldlist = name of fields to be extract. choose a subset of the default
+% value : fieldlist =
+%  'StudyDate,StudyTime,TA,StudyID,PatientsName,PatientsAge,PatientsSex,PatientsWeight,SeriesNumber,SeriesDescription,SeriesTime,InstanceNumber, ...
+%  CSAImageHeaderType,ImageType,MRAcquisitionType,SequenceName,ScanningSequence,SequenceVariant,SoftwareVersions,RepetitionTime,EchoTime, ...
+%  FlipAngle,VariableFlipAngleFlag,NumberofAverages,PixelBandwidth,InversionTime,PhaseEncodingDirection,NumberofPhaseEncodingSteps,...
+%  ScanOptions,processing,PATmod,AngioFlag,EchoTrainLength,EchoNumbers,GradientMode,FlowCompensation,CoilString,coilstr,...
+%  transmitterCalibration,ImagingFrequency,SAR,pixBW,PixelBandwidth,Matrix,PixelSize,PercentPhaseFieldofView,PercentSampling,Resper_str,';
+
+
+if ~exist('csvname')
+    csvname=fullfile(pwd,'dicom_info.csv')
+end
+
+if ~exist('fieldlist')
+    fieldlist = 'StudyDate,StudyTime,TA,StudyID,PatientsName,PatientsAge,PatientsSex,PatientsWeight,SeriesNumber,SeriesDescription,SeriesTime,InstanceNumber,CSAImageHeaderType,ImageType,MRAcquisitionType,SequenceName,SequenceSiemensName,ScanningSequence,SequenceVariant,SoftwareVersions,RepetitionTime,EchoTime,FlipAngle,VariableFlipAngleFlag,NumberofAverages,PixelBandwidth,InversionTime,PhaseEncodingDirection,phase_angle,Orientation,NumberofPhaseEncodingSteps,concatenation,ScanOptions,processing,PATmod,AngioFlag,EchoTrainLength,EchoNumbers,GradientMode,FlowCompensation,CoilString,coilstr,transmitterCalibration,ImagingFrequency,SAR,pixBW,PixelBandwidth,Matrix,PixelSize,PercentPhaseFieldofView,PercentSampling,Resper_str,Spoil_grad,RF_phase,flReferenceAmplitude,fft_scale,Gain,';
+end
+if ~exist('matlabsavename')
+    matlabsavename = '';
+end
+
+
+
+fids_txt = fopen(csvname,'a+');
+
+nbline=0;
+while fgetl(fids_txt)~=-1
+    nbline=nbline+1;
+end
+if mod(nbline,40)==0
+    fieldlist2 = sprintf('%s\n',fieldlist(1:size(fieldlist,2)-1));
+    fprintf(fids_txt,fieldlist2);
+end
+
+[fieldlist_mat, nb_args] = extract_args(fieldlist);
+
+
+hhout = get_dicom_info(ff); hh=hhout;
+
+if ~isempty(matlabsavename)
+    save(matlabsavename,'hh');
+end
+
+for i=1:length(hhout)
+    
+    hh = hhout{i};
+    
+    %Ecriture dans le fichier .csv
+    for j = 1:length(fieldlist_mat)
+        
+        if ~isfield(hh,fieldlist_mat{j})
+            continue
+        end
+        
+        switch fieldlist_mat{j}
+            
+            case 'StudyDate'
+                aa = getfield(hh,fieldlist_mat{j});
+                fprintf(fids_txt,datestr(aa));
+                fprintf(fids_txt,',');
+                
+            case'StudyTime'
+                [heure,min,sec,ms] = get_time_from_dic_siemens(getfield(hh,fieldlist_mat{j}));
+                fprintf(fids_txt,'%dh%d:%d,',heure,min,sec);
+                
+            case'SeriesTime'
+                [heure,min,sec,ms] = get_time_from_dic_siemens(getfield(hh,fieldlist_mat{j}));
+                fprintf(fids_txt,'%dh%d:%d,',heure,min,sec);
+                
+            case 'TA'
+                aa = hh.Private_0051_100a;
+                fprintf(fids_txt,'%s',aa);
+                fprintf(fids_txt,',');
+                
+            case 'Matrix'
+                fprintf(fids_txt,'[%.2f %.2f %.2f],',hh.dim(1),hh.dim(2),hh.dim(3));
+                
+            case 'PixelSize'
+                if ~strcmp(hh.PixelSpacing,'?')
+                    fprintf(fids_txt,'[%3.4f %3.4f %3.4f ou %3.4f],',hh.PixelSpacing(1),hh.PixelSpacing(2),hh.SliceThickness,hh.SpacingBetweenSlices);
+                else
+                    fprintf(fids_txt,'?');
+                end
+                
+            case 'Orientation'
+                fprintf(fids_txt,' %s Pos = [%.2f %.2f %.2f ] Orient=[%.2f %.2f %.2f %.2f %.2f %.2f],',hh.orientation_str,hh.ImagePositionPatient(1),hh.ImagePositionPatient(2),hh.ImagePositionPatient(3),...
+                    hh.ImageOrientationPatient(1),hh.ImageOrientationPatient(2),hh.ImageOrientationPatient(3),...
+                    hh.ImageOrientationPatient(4),hh.ImageOrientationPatient(5),hh.ImageOrientationPatient(6));
+                
+            otherwise
+                if isfield(hh,fieldlist_mat{j})
+                    aa = getfield(hh,fieldlist_mat{j});
+                    
+                    if isa(aa,'char')
+                        fprintf(fids_txt,'%s,',aa);
+                    else
+                        if isa(aa,'double')
+                            fprintf(fids_txt,'%.2f,',aa);
+                        else
+                            if isnumerical(aa)
+                                if round(aa)==aa
+                                    fprintf(fids_txt,'%d,',aa);
+                                else
+                                    fprintf(fids_txt,'%f,',aa);
+                                end
+                            end
+                        end
+                    end
+                else
+                    fprintf('Skiping info on %s field not exist',fieldlist_mat{j});
+                     fprintf(fids_txt,',');
+                end
+        end
+    end
+    fprintf(fids_txt,'\n');
+end
+
+fclose(fids_txt);

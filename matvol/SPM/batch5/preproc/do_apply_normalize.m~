@@ -1,0 +1,42 @@
+function jobs = do_apply_normalize(anat_matfile,ff,parameters,jobs)
+
+if ~isfield(parameters,'logfile')
+  parameters.logfile='';
+end
+
+logmsg(parameters.logfile,sprintf('Apply normalization "%s" to %d files starting with "%s"...',anat_matfile,sum(cellfun('size',ff,1)),ff{1}(1,:)));
+
+
+if ~exist('jobs')
+  nbjobs = 1;
+else
+  nbjobs = length(jobs) + 1;
+end
+
+
+jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).matname = cellstr(anat_matfile);
+jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).resample = cellstr(strvcat(ff));
+
+jobs{nbjobs}.spatial{1}.normalise{1}.write.roptions.vox = parameters.apply_norm.voxelsize;
+
+if isfield(parameters.apply_norm,'interp')
+  jobs{nbjobs}.spatial{1}.normalise{1}.write.roptions.interp = parameters.apply_norm.interp;
+end
+ 
+if isfield(parameters.apply_norm,'BoundingBox')
+  jobs{nbjobs}.spatial{1}.normalise{1}.write.roptions.bb = parameters.apply_norm.BoundingBox;
+end
+
+%jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).roptions.interp = 4;
+%jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).roptions.wrap = [0 1 0];
+%jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).roptions.preserve = 0;
+%jobs{nbjobs}.spatial{1}.normalise{1}.write.subj(1).roptions.bb = NaN;
+
+
+
+if isfield(parameters.norm,'type')
+    if  strfind(parameters.norm.type,'vbm_norm')
+                jobs(nbjobs) = job_vbm8_create_wraped({anat_matfile},ff)
+    end
+end
+

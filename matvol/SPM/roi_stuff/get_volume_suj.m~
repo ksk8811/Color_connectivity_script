@@ -1,0 +1,65 @@
+yfunction cout = get_volume_suj(f,suj_level)
+%function cout = get_volume_suj(f,suj_level)
+%  f is a cell of size number of subject. Each element contain n volume for
+%  which the volume is compute.
+%OUTPUT cout is a ready to print struct (see write_res_to_csv)
+
+
+if ~exist('suj_level')
+    suj_level=0;
+end
+
+
+nbvol = size(f{1},1);
+
+[pp volname] = get_parent_path(cellstr(f{1}));
+[pp volname] = get_parent_path(volname); %remove 2nd extention if .nii.gz
+ 
+
+for nsuj=1:length(f)
+    if size(f{nsuj},1)~=nbvol
+        error('subject %d has not the right number of volume',nsuj)
+    end
+    
+    [pp voln] = get_parent_path(cellstr(f{1}));
+    [pp voln] = get_parent_path(voln); %remove 2nd extention if .nii.gz
+    
+    if ~comp_cell(volname,voln)
+        warning('sujet %d has different volume name (assuming same order)',nsuj)
+    end
+    
+end
+
+volname=nettoie_dir(volname);
+
+for kv=1:length(volname)
+    for nsuj=1:length(f)
+        volist{nsuj} = f{nsuj}(kv,:);
+    end
+
+    if kv==1
+        if suj_level
+            [pp sujname] = get_parent_path(volist,suj_level);
+        else
+            sujname = get_parent_path(volist);
+        end
+        cout.pool='group1';
+        cout.suj = sujname;
+    end
+    v=do_fsl_getvol(volist);
+    cout = setfield(cout,volname{kv},v(:,2)');
+end
+
+
+
+function oo = comp_cell(c1,c2)
+
+oo=1;
+for kk=1:length(c1)
+    if ~strcmp(c1{kk},c2{kk})
+        oo=0;
+        break
+    end
+end
+
+

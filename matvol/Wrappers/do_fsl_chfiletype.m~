@@ -1,0 +1,24 @@
+function  do_fsl_chfiletype(fin,str_type,fout)
+
+if ~exist('str_type')
+  str_type = 'NIFTI_GZ';
+end
+
+if exist('fout')
+  fout = cellstr(char(fout));
+end
+
+fin = cellstr(char(fin));
+
+
+
+for k=1:length(fin)
+  if exist('fout')
+    cmd = sprintf('fslchfiletype %s %s %s',str_type,fin{k},fout{k})
+  else
+    cmd = sprintf('fslchfiletype %s %s ',str_type,fin{k});
+  end
+
+  unix(cmd);
+end
+

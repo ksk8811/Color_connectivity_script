@@ -1,0 +1,4 @@
+function bool = is_dicom_series_derived(hdr)
+
+    if ~isempty(strfind(hdr{1}.ImageType,'DERIVED')) || ~isempty(strfind(hdr{1}.ImageType,'SECONDARY'))
+0

@@ -1,0 +1,4 @@
+go
+
+get_series_paradigm
+set_Result_path

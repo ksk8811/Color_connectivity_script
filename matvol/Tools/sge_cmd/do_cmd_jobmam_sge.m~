@@ -1,0 +1,70 @@
+function varargout = do_cmd_jobmam_sge(job,par,jobappend)
+
+
+if ~exist('par'),  par=''; end
+if ~exist('jobappend','var'), jobappend ='';end
+
+def_par.jobname='jobname';
+def_par.software = '';%fsl freesurfer
+def_par.software_version = '';
+def_par.software_path = '';
+def_par.job_append = 1;
+
+def_par.jobdir=pwd;
+def_par.sge_queu = 'server_ondule';
+def_par.sge_nb_coeur=1;
+def_par.submit_sleep = 1;  %add a sleep of 1 second between each qsub
+def_par.fake = 0;
+def_par.walltime = '';
+def_par.qsubappend = '';
+
+par = complet_struct(par,def_par);
+
+if ~isempty(jobappend)
+    for kk=1:length(job)
+        job{kk} = sprintf('%s\n\n%s',jobappend{kk},job{kk});
+    end
+end
+
+job_dir = fullfile(par.jobdir,par.jobname);
+
+if ~exist(job_dir)
+    mkdir(job_dir);
+end
+
+if par.job_append
+    %dd=dir([job_dir '/*' par.jobname '*']);
+    dd=get_subdir_regex_files(job_dir,['^j.*' par.jobname],struct('verbose',0));if ~isempty(dd),dd = cellstr(char(dd));end
+    kinit = length(dd);
+else
+    kinit = 0;
+end
+
+for k=1:length(job)
+    
+    jname = sprintf('j%.2d_%s',k+kinit,par.jobname);
+    
+    fpn = fullfile(job_dir,jname);
+    job_variable{k} = fullfile(job_dir,['variable_' jname '.mat']);
+    job_fonc{k} = fullfile(job_dir,['mfonc_' jname]);
+    
+    fpnfonc = fopen([job_fonc{k} '.m'],'w');
+    llp = path;
+    if nargout==1
+        fprintf(fpnfonc,' path(''%s'');\nload %s;\n%s \nexit\n',llp,job_variable{k},job{k});
+    else
+        fprintf(fpnfonc,' path(''%s'');\n\n %s \nexit\n',llp,job{k});
+    end
+    
+    fclose(fpnfonc);
+    
+    cmdd{k} = sprintf('\n matlab  -nodesktop -nojvm -nodisplay  -r "run(''%s'')"\n',job_fonc{k});
+    
+    
+end
+
+do_cmd_sge(cmdd,par);
+
+if nargout==1
+    varargout{1} = job_variable;
+end

@@ -1,0 +1,18 @@
+roiy=get_subdir_regex('/home/sabine/data_nucleipark','^2','roi_yeb');
+suj=get_parent_path(roiy);
+
+suj(13)='';
+roiy=get_subdir_regex(suj,'roi_yeb');
+
+%/home/sabine/data_nucleipark/2010_11_09_NP_LP_2010_016_PD_3T bad roiyeb
+
+statdir = get_subdir_regex(suj,'stat','^Global_no_reg$');
+roif=get_subdir_regex_files(roiy,{'wPPN.*img$','wIGP_S..img$'})
+
+%roi_img = get_subdir_regex_files('/home/sabine/data_img/data_nucleipark/ROI_NucleiPark_AAL',{'^mask_intersection.*img$'}) ;
+
+
+outdir= get_subdir_regex(suj,'stat');
+outdir = r_mkdir(outdir,'YEB');
+
+extract_roi_signal_as_reg(statdir,roif,outdir)

@@ -1,0 +1,61 @@
+function jobs = do_slice_timing(fin,par)
+
+
+if ~exist('par')
+    par='';
+end
+
+defpar.TR   =0;
+defpar.prefix = 'a';
+defpar.sge = 0;
+defpar.slice_order = '
+defpar.jobname='spm_sliceTime';
+defpar.walltime = '04:00:00';
+
+par = complet_struct(par,defpar);
+
+  for n=1:length(fin)
+    jobs{1}.spm.temporal.st.scans{n} = cellstr(ff{n});
+  end
+
+  V = spm_vol(ff{1}(1,:));
+  nbslices = V.dim(3);
+  TA = TR - (TR/nbslices);
+
+  parameters.slicetiming.slice_order = par.slice_order;
+  
+  [slice_order,ref_slice] = get_slice_order(parameters,nbslices);
+
+
+  jobs{1}.temporal{1}.st.nslices = nbslices;
+  jobs{1}.temporal{1}.st.tr = TR;
+  jobs{1}.temporal{1}.st.ta = TA;
+    
+  jobs{1}.temporal{1}.st.so = slice_order;
+  jobs{1}.temporal{1}.st.refslice = ref_slice;
+
+
+end
+%%
+matlabbatch{1}.spm.temporal.st.scans = {
+                                        {
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S11_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0011-00001-000001-01.img,1'
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S11_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0011-00002-000002-01.img,1'
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S11_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0011-00003-000003-01.img,1'
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S11_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0011-00004-000004-01.img,1'
+                                        }
+                                        {
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S12_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0012-00004-000004-01.img,1'
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S12_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0012-00005-000005-01.img,1'
+                                        '/servernas/images4/rosso/PAS_AVC/2015_01_26_PAS_AVC_Patient001/S12_EP2D_3_iso_TR2100_MG/fPAS_AVC_Patient001-0012-00006-000006-01.img,1'
+                                        }
+                                        }';
+%%
+matlabbatch{1}.spm.temporal.st.nslices = 4;
+matlabbatch{1}.spm.temporal.st.tr = 2;
+matlabbatch{1}.spm.temporal.st.ta = 2;
+matlabbatch{1}.spm.temporal.st.so = [1 3 5 2 5];
+matlabbatch{1}.spm.temporal.st.refslice = 3;
+matlabbatch{1}.spm.temporal.st.prefix = 'a';
+
+

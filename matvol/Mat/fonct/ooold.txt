@@ -1,0 +1,64 @@
+return
+
+%color dans une autre fenetre : c'est pas pratique
+
+ if ~isfield(hdl,'color')
+	hdl.color = fig_col(FigNum);
+ 	set(FigNum,'UserData',hdl);
+ 	
+ 	hdlC = get(hdl.color,'userdata')
+ 	
+ 	ma = max(max(Volume(NumVol).data(:,:,coupe)))
+ 	mi = min(min(Volume(NumVol).data(:,:,coupe)))
+ 	set(hdlC.edit_min,'string',num2str(mi))
+ 	set(hdlC.edit_max,'string',num2str(ma))
+ 	
+	Sst = 0.01;
+ 	set(hdlC.slide_max,'value',ma,'Min',mi,'Max',ma,'SliderStep',[Sst Sst*10]);
+ 	set(hdlC.slide_min,'value',mi,'Min',mi,'Max',ma,'SliderStep',[Sst Sst*10]);
+
+ end
+ 
+ C = get(FigNum,'colormap');
+ Clim = get(FigNum,'Clim');
+ 
+ set(hdl.color,'colormap',C)
+ set(get(hdl.color,'CurrentAxes'),'Clim',Clim)
+ 
+ figure(hdl.color)
+ rgbplot(C);
+ colorbar;
+
+
+
+
+
+
+
+91%elseif strcmp(action,'diff'),
+                                                                                
+  M_rot   = Volume(NumVol).M_rot;
+  dim = Volume(NumVol).Vol.dim(1:3);
+  dim = dim*M_rot(1:3,1:3);
+                                                                                
+  fprintf('\nVolume %s  MOINS Volume %s \n',Volume(1).Vol.descrip,Volume(2).Vol.descrip)
+                                                                                
+  for num_slice=1:dim(3)
+                                                                                
+    M_slice = spm_matrix([0 0 num_slice]);
+    mmm = M_rot*M_slice;
+                                                                                
+    slice1 = (spm_slice_vol(Volume(1).Vol,mmm,dim(1:2),0));
+    slice2 = (spm_slice_vol(Volume(2).Vol,mmm,dim(1:2),0));
+                                                                                
+    diff(:,:,num_slice) = slice1-slice2;
+    if(any(any(diff(:,:,num_slice)))==0)
+      disp (['Volume ' num2str(2) ' :slice ' num2str(num_slice) ' equal'])
+    else
+      diffslice = max(max(diff(:,:,num_slice)));
+      fprintf('slice %d  diff %f \n',num_slice,diffslice);
+    end
+  end
+                                                                                
+  affichevol(0,diff,'diff');
+                                                                                

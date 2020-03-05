@@ -1,0 +1,205 @@
+
+set(gca,'color',[1 0 0])
+
+ 
+
+if strcmp(action,'change_axis'),
+
+
+elseif strcmp(action,'hide_color'),
+
+%    name = fieldnames(hdl.color);
+%    for kk=1:length(name),set(getfield(hdl.color,name{kk}),'visible','off');
+%   end
+
+%   set(hdl.vol_list,'visible','off');
+   set(hdl.vol_list,'Position', [0.85 0.55 0.9 0.03])
+
+   set(hdl.color.slide_max,'position',[0.85 0.5 0.15 0.02])
+   set(hdl.color.slide_mean,'position',[0.85 0.48 0.15 0.02])
+   set(hdl.color.slide_min,'position',[0.85 0.46 0.15 0.02])
+
+   set(hdl.color.col_ini,'position',[0.85 0.42 0.04 0.03])
+   set(hdl.color.edit_min,'position',[0.90 0.42 0.04 0.03])
+   set(hdl.color.edit_max,'position',[0.95 0.42 0.04 0.03])
+
+
+elseif strcmp(action,'show_color'),
+
+    name = fieldnames(hdl.color);
+    for kk=1:length(name),set(getfield(hdl.color,name{kk}),'visible','on');
+   end
+   set(hdl.vol_list,'visible','on');
+
+
+elseif strcmp(action,'hide_tempo'),
+
+  affichevol(11,'show_color')
+
+  hh=findobj('label','Hide tmp')
+  set(hh,'label','Show tmp','callback','affichevol(11,''show_tempo'')');
+
+   name = fieldnames(hdl.hdl_p);
+   for kk=1:length(name)
+      set(getfield(hdl.hdl_p,name{kk}),'visible','off');
+   end
+
+elseif strcmp(action,'show_tempo'),
+
+  affichevol(11,'hide_color')
+
+  hh=findobj('label','Show tmp')
+  set(hh,'label','Hide tmp','callback','affichevol(11,''hide_tempo'')');
+
+   name = fieldnames(hdl.hdl_p);
+   for kk=1:length(name)
+      set(getfield(hdl.hdl_p,name{kk}),'visible','on');
+   end
+
+elseif strcmp(action,'hide_Tpos'),
+
+   name = fieldnames(hdl.tpos_hdl);
+   for kk=1:length(name)
+      set(getfield(hdl.tpos_hdl,name{kk}),'visible','off');
+   end
+
+%   hdl.view.max_ini = [612 612];
+%   hdl.view.max     =  hdl.view.max_ini/hdl.view.mode;
+
+%   dec = 50;
+%   for na = 1:length(hdl.axe)
+%     hddl = Axeshdl{na};
+%     a_pos = hddl.cur_pos;
+%     if na==3 , a_pos(2) = a_pos(2) + dec; end
+%     if na==4 , a_pos(2) = a_pos(2) + dec; end
+%     hddl.cur_pos = a_pos;
+%       Axeshdl{na} = hddl;
+%
+%     if hdl.view.mode==2 , set(hdl.axe(na),'Position',a_pos,'visible','on');end
+%   end
+
+%   AxeshdlChanged
+
+%   set(FigNum,'userdata',hdl);
+%   set_axis='true';
+
+elseif strcmp(action,'trac_roi_on')
+
+  set(hdl.hdl_p.slider,'userdata',1)
+  set(gcbo,'label','trac off','callback','affichevol(11,''trac_roi_off'')')
+
+elseif strcmp(action,'trac_roi_off'),
+    set(hdl.hdl_p.slider,'userdata',[])
+    set(gcbo,'label','trac on','callback','affichevol(11,''trac_roi_on'')')
+
+elseif strcmp(action,'variance_on')
+
+  set(gcbo,'label','variance off','callback','affichevol(11,''variance_off'')')
+
+elseif strcmp(action,'variance_off'),
+
+    set(gcbo,'label','variance on','callback','affichevol(11,''variance_on'')')
+
+elseif strcmp(action,'show_Tpos'),
+
+  ss = get(hdl.tpos_hdl.corected,'visible');
+
+  if strcmp(ss,'off')
+
+    name = fieldnames(hdl.tpos_hdl);
+    for kk=1:length(name)
+      set(getfield(hdl.tpos_hdl,name{kk}),'visible','on');
+    end
+
+%    hdl.view.max_ini = [612 512];
+%    hdl.view.max     =  hdl.view.max_ini/hdl.view.mode;
+
+%    dec = 50;
+%    for na = 1:length(hdl.axe)
+%      hddl = Axeshdl{na}; get(hdl.axe(na),'UserData');
+    
+ %     a_pos = hddl.cur_pos;
+ %     if na==3 , a_pos(2) = a_pos(2) - dec; end
+ %     if na==4 , a_pos(2) = a_pos(2) - dec; end
+ %     hddl.cur_pos = a_pos;
+
+%      Axeshdl{na} = hddl;
+      
+%      if hdl.view.mode==2 , set(hdl.axe(na),'Position',a_pos,'visible','on');end
+%    end
+
+%    AxeshdlChanged
+%    set_axis='true';
+  end
+     
+elseif strcmp(action,'hide_all')
+
+if strcmp(get(gcbo,'label'),'show')
+  showall=1;
+  set(gcbo,'label','hide');
+else
+  showall=0;
+  set(gcbo,'label','show');
+end
+   col_gui = 0 ; tmp_gui = 0;
+
+   name = fieldnames(hdl.tpos_hdl);
+   for kk=1:length(name),set(getfield(hdl.tpos_hdl,name{kk}),'visible','off');
+   end
+   name = fieldnames(hdl.Roi);
+   for kk=1:length(name),set(getfield(hdl.Roi,name{kk}),'visible','off');
+   end
+   name = fieldnames(hdl.space);
+   for kk=1:length(name),set(getfield(hdl.space,name{kk}),'visible','off');
+   end
+
+   name = fieldnames(hdl.color);
+   col_gui = 1;
+   for kk=1:length(name),set(getfield(hdl.color,name{kk}),'visible','off');
+   end
+
+if isfield(hdl,'hdl_p')
+   name = fieldnames(hdl.hdl_p);
+   tmp_gui = 1;
+
+   for kk=1:length(name)
+      set(getfield(hdl.hdl_p,name{kk}),'visible','off');
+   end
+end
+
+   set(hdl.vol_list,'visible','off');
+   set(hdl.view.close,'visible','off');
+
+   if (showall)
+
+   name = fieldnames(hdl.Roi);
+   for kk=1:length(name),set(getfield(hdl.Roi,name{kk}),'visible','on');
+   end
+   name = fieldnames(hdl.space);
+   for kk=1:length(name),set(getfield(hdl.space,name{kk}),'visible','on');
+   end
+%	  set(hdl.space.time_slider,'visible','off')
+%	  set(hdl.space.txt_nbvol,'visible','off')  
+%	  set(hdl.space.txt_edit_nbvol,'visible','off')
+%   set(hdl.space.axes,'visible','off')
+
+
+   if tmp_gui
+     name = fieldnames(hdl.hdl_p);
+     for kk=1:length(name)
+        set(getfield(hdl.hdl_p,name{kk}),'visible','on');
+     end
+   end
+
+   if col_gui
+     name = fieldnames(hdl.color);
+     for kk=1:length(name),set(getfield(hdl.color,name{kk}),'visible','on');
+     end
+   end
+
+   set(hdl.vol_list,'visible','on');
+   set(hdl.view.close,'visible','on');
+
+ end
+  
+end

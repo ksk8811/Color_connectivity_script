@@ -1,0 +1,92 @@
+function transform_4D_to_oneB0(fi_4D,par)
+
+if ~exist('fi_4D'), fi_4D='';end
+
+if ~exist('par'),  par=''; end
+
+def_par.bval = 'bvals';
+def_par.bvec = 'bvecs';
+def_par.dosusan = 0;
+def_par.do_delete=1;
+def_par.susan_noise = 100;
+def_par.do_delete=1;
+def_par.do_realign = 0;
+def_par.B0_prefix = 'B0_mean';
+
+par = complet_struct(par,def_par);
+
+if nargin ==0 && nargout==1
+    
+end
+
+    
+
+if isempty(fi_4D)
+    fi_4D = spm_select(inf,'.*','select 4D data','',pwd);fi_4D= cellstr(fi_4D);
+end
+
+for k=1:length(fi_4D)
+    
+    [p,ff,e] = fileparts(fi_4D{k});
+    
+    fo = addprefixtofilenames(fi_4D{k},par.B0_prefix);
+    
+    if findstr(ff,'.')
+        [ppp ff e] = fileparts(ff);
+    end
+    
+    bval = load(fullfile(p,par.bval));
+    bvec = load(fullfile(p,par.bvec));
+    
+    if size(bval,2)==1, bval=bval';end
+    if size(bvec,2)==3, bvec=bvec';end
+    
+    ind = find(bval==0);
+    if isempty(ind)
+        ind = find(bval<50);
+        bval(ind)=0;
+    end
+    
+    for kind=1:length(ind)
+        B0name = ['theB0_' num2str(kind)];
+        do_fsl_roi(fi_4D(k),B0name,ind(kind)-1,1);
+    end
+    
+    ffB0 = get_subdir_regex_files(p,'^theB0');
+    
+    
+    if par.do_realign
+        
+        ffB0 =  unzip_volume(ffB0);    ffB0 = get_subdir_regex_files(p,'^theB0');
+        
+        parameters.realign.to_first=1; parameters.realign.type='mean_and_reslice';
+        j=do_realign(ffB0,parameters);spm_jobman('run',j)
+        
+        ffoneB0 =  get_subdir_regex_files(p,'^meantheB0_1.nii$',1)
+        fo = change_file_extension(fo,'.nii')
+        r_movefile(ffoneB0,fo,'move')
+    else
+        
+        par.sge=0;
+        do_fsl_mean(ffB0,fo,par)
+
+    end
+    
+    if par.do_delete
+        ff =get_subdir_regex_files(p,'theB0');
+        do_delete(ff,0)
+    end
+    %do_delete(ffB0,0);
+    
+    if par.dosusan
+        cmd = sprintf('cd %s; susan meantheB0_1.nii %d 2 3 1 0 meanB0_susan%d',p,par.susan_noise,par.susan_noise)
+        unix(cmd)
+        
+    end
+    
+    
+    
+end
+
+
+

@@ -1,0 +1,23 @@
+function do_fsl_apply_topup(fin,ftopup,par)
+
+if ~exist('par'),par ='';end
+
+
+defpar.outprefix = 'utopup_';
+defpar.sge=1;
+defpar.index=2;
+
+par = complet_struct(par,defpar);
+
+fo = addprefixtofilenames(fin,par.outprefix);
+
+for k=1:length(fin)
+    [dirtopup fff] = fileparts(ftopup{1});
+    applytopup --inindex=2 --topup=./4D_topup -o meanS09S08_cor --method=jac --datain=acqp.txt
+
+    cmd = sprintf('cd %s;\n applytopup --imain=%s --datain=%s --out=%s\n',...
+        dirtopup,fin{k},'acqp.txt',fo)
+    job{k} = cmd;
+end
+
+do_cmd_sge(job,par)

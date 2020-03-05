@@ -1,0 +1,33 @@
+function  matlabbatch =job_dartel_createWarped(flow,img,par)
+
+if ~exist('par')
+  par='';
+end
+
+if ~isfield(par,'preserve')
+  par.preserve=0; %no modulation
+end
+
+
+if ~iscell(flow)
+  flow = cellstr(flow);
+end
+if ~iscell(img)
+  img = cellstr(img);
+end
+
+%-----------------------------------------------------------------------
+% Job configuration created by cfg_util (rev $Rev: 3357 $)
+%-----------------------------------------------------------------------
+
+matlabbatch{1}.spm.tools.dartel.crt_warped.flowfields = flow;
+matlabbatch{1}.spm.tools.dartel.crt_warped.images{1} = img;
+
+%for k=1:length(flow)
+%   ff = cellstr(char(img(k)));
+%   matlabbatch{1}.spm.tools.dartel.crt_warped.images{k} = ff;
+%end
+
+matlabbatch{1}.spm.tools.dartel.crt_warped.jactransf = par.preserve;
+matlabbatch{1}.spm.tools.dartel.crt_warped.K = 6;
+matlabbatch{1}.spm.tools.dartel.crt_warped.interp = 1;

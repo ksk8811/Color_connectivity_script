@@ -1,0 +1,14 @@
+function r = design_efficiency(fmat)
+
+for k=1:length(fmat)
+    l = load(fmat{k});
+    X = l.SPM.xX.X;
+    
+    for nbc = 1:length(l.SPM.xCon)
+        c = l.SPM.xCon(nbc).c;
+        
+        inv(X'*X)
+    end
+    
+    
+end

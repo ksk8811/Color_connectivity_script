@@ -1,0 +1,20 @@
+
+
+SPM/dicom_tools
+
+  write_dicom_info_to_csv : extract the dicom parameters of a liste of dicom files and write it to a csv file
+  convert_dicom : covert dicom to nifti 
+
+
+SPM/batch5/ : script for batching SPM fmri + script for preprocessing (coregister normalize ...)
+a partir du fichier de parametres SPM/batch5/proto_def_nomore/Template_param
+on peut lancer :
+do_preproc('Template_param')
+do_first_level('Template_param')
+do_second_level('Template_param')
+
+
+SPM/batch5/preproc : 
+	do_*  : to be removed
+	job_* : to create different SPM jobs.  code example job_do_normalize
+

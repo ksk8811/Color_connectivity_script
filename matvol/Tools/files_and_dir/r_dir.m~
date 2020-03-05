@@ -1,0 +1,6 @@
+function do = r_mkdir(d)
+  
+if is
+for k=1:length(d)
+  dir(d{k});  
+end  

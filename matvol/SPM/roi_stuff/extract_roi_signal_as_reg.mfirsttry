@@ -1,0 +1,62 @@
+
+%if ~exist('param_file');param_file='';end
+%param_file='first_level_NucleiPark_PD_Off';
+get_user_param;parameters.logfile='';
+
+roi_img = get_subdir_regex_files('/home/sabine/data_img/data_nucleipark/ROI_NucleiPark_AAL',{'^mask_intersection.*img$'}) ;
+roi_img=cellstr(char(roi_img));
+
+
+%check if stats exist
+for nsuj=1:length(parameters.subjects)
+  params = parameters;
+  
+  %- Change varialbles that are subject specific
+  params.subjectdir = parameters.subjects{nsuj};  
+  
+  wd = fullfile(params.subjectdir,'stats');
+  statdir = fullfile(wd,params.modelname);
+  if ~exist(fullfile(statdir,'SPM.mat')),     
+    warning('you must run the firstlevel first for %s \n',statdir);  
+  end
+
+end
+
+
+for nbroi=1:length(roi_img)
+  
+  %roi= maroi('load', roi_path(nroi,:))
+  
+  roi = maroi_image(struct('vol', spm_vol(deblank(roi_img{nbroi})), 'binarize',1,'func', 'img>0'))
+
+  for nsuj=1:length(parameters.subjects)
+    params = parameters;
+
+    %- Change varialbles that are subject specific
+    params.subjectdir = parameters.subjects{nsuj};  
+
+    wd = fullfile(params.subjectdir,'stats');
+    statdir = fullfile(wd,params.modelname);
+
+      
+    load (fullfile(statdir,'SPM.mat'));
+    D=mardo_5(SPM);
+    
+    %P = image_names(D);%    P = strvcat(P{:});
+
+    Y= get_marsy(roi, D, 'eigen1');
+    %fY = apply_filter(D, Y);
+    fYnw = apply_filter(D, Y, {'no_whitening'});
+
+    sY = y_struct(fYnw);
+    R = detrend(sY.Y);
+
+    [pp,ff] = fileparts(roi_img{nbroi});
+    
+    save_file = fullfile(statdir,[ff 'user_reg']);
+    
+    save(save_file,'R')
+    
+  end
+  
+end

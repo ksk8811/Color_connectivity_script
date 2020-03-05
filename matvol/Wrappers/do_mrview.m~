@@ -1,0 +1,9 @@
+function mrview(f)
+
+f=cellstr(char(f));
+
+cmd='mrview';
+
+for k=1:length(f)
+	cmd = sprtinf(%s %s,cmd,f{k});
+end 

@@ -1,0 +1,21 @@
+function fo = do_fsl_roi(f,name,ind_start,num)
+
+if ~exist('ind_start')
+  ind_start=0;
+end
+if ~exist('num')
+  num=1;
+end
+
+f=cellstr(char(f));
+
+for k=1:length(f)
+  [pp ff] = fileparts(f{k});
+  
+  cmd = sprintf('fslroi %s %s/%s %d %d',f{k},pp,name,ind_start,num);
+  
+  unix(cmd)
+
+  fo{k} = fullfile(pp,[name '.nii.gz']);
+  
+end

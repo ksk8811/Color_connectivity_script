@@ -1,0 +1,55 @@
+function [vol varargout] = do_fsl_check_vol(f)
+
+
+f=cellstr(char(f));
+
+
+
+%     for k=1:length(f)
+%         [img,dimes,vox] = read_avw(deblank(f{k}));
+%
+%         vol(k,1) = length(find(img>seuil));
+%         vol(k,2) = vol(k,1) * prod(vox(1:3));
+%         volmean=0;
+%     end
+
+
+
+for k=1:length(f)
+    
+    cmd = sprintf('fslstats %s _V',f{k},opt);
+    
+    [a,b]=unix(cmd);
+    b = str2num(b);
+    
+    if isempty(b)
+        b=ones(1,6)*NaN;
+    end
+    vol(k,:) = b(1:2);
+    
+    if nargout>=2
+        volmean(k,:) = b(3);
+    end
+    
+    if nargout>=3
+        volstd(k,:)  = b(4);
+    end
+    
+    if nargout>=4
+        volentropy(k,:) = b(5);
+    end
+    
+    if nargout>=5
+        vol98pecentil(k,:) = b(6);
+    end
+    
+    
+end
+
+if exist('volmean','var'), varargout{1} = volmean;end
+if exist('volstd','var'), varargout{2} = volstd;end
+if exist('volentropy','var'), varargout{3} = volentropy;end
+if exist('vol98pecentil','var'),varargout{4} = vol98pecentil;end
+
+
+

@@ -1,0 +1,149 @@
+function plot_white_gray_signal_split(Y,Yn,P,vlines)
+
+
+cw={'r','r:','r-.','r--'};
+cg={'g','g:','g-.','g--'};
+cn={'b','b:','b-.','b--'};
+
+hf = figure('Position',[1291 90 1116 854]);
+
+subplot(4,3,1);hold on 
+plot(Y.Yw,'r');  plot(Y.Yw,'hr');
+title('white mean of mean')
+
+subplot(4,3,2);hold on 
+plot(Y.Ywvar,'r'); plot(Y.Ywvar,'hr')
+
+%for k=1:length(Y.regions) 
+%  ywm = Y.regions(k).ywv.*Y.regions(k).ywv;
+%  Y.Ywvar2(k,1) = sqrt(mean(ywm));
+%end
+%plot(Y.Ywvar2,'m'); plot(Y.Ywvar2,'hm')
+
+title('white mean of std')
+
+subplot(4,3,3);  hold on
+plot(Y.Ywmvar,'r'); plot(Y.Ywmvar,'hr')
+
+title('white std of means')
+
+
+subplot(4,3,4);hold on 
+plot(Y.Yg,'r');  plot(Y.Yg,'hr');
+title('gray mean of mean')
+
+subplot(4,3,5);hold on 
+plot(Y.Ygvar,'r'); plot(Y.Ygvar,'hr')
+
+title('gray mean of std')
+
+subplot(4,3,6);  hold on
+plot(Y.Ygmvar,'r'); plot(Y.Ygmvar,'hr')
+
+title('gray std of means')
+
+for kn=1:length(Yn)
+
+  subplot(4,3,7); hold on
+  plot(Yn(kn).Y,cn{kn});
+  if kn==1,   plot(Yn(kn).Y,['h' cn{kn}]); end
+  title('noise S')
+
+  subplot(4,3,8); hold on
+  plot(sqrt(Yn(kn).Yvar),cn{kn})
+  if kn==1,   plot(sqrt(Yn(kn).Yvar),['h',cn{kn}]); end
+  title('noise std')
+  
+  subplot(4,3,11); hold on
+  plot((Yw.Y-Yg.Y)./sqrt(Yn(kn).Yvar),cn{kn})
+  if kn==1,   plot((Yw.Y-Yg.Y)./sqrt(Yn(kn).Yvar),['h',cn{kn}]); end
+  title('CNR')
+
+
+end
+
+subplot(4,3,4);hold on 
+plot(Yg.Y,'g'); plot(Yg.Y,'hg');
+title('gray S')
+
+subplot(4,3,5);hold on 
+plot(sqrt(Yg.Yvar),'g');plot(sqrt(Yg.Yvar),'hg')
+title('gray std')
+
+subplot(4,3,10);hold on 
+plot(Yw.Y-Yg.Y); plot(Yw.Y-Yg.Y,'h')
+title('contrast S')
+
+subplot(4,3,6); hold on
+plot(Yn(1).nbpts);plot(Yn(1).nbpts,'h');
+title('nb pts noise 1')
+
+subplot(4,3,9);hold on 
+plot(Yw.nbpts); plot(Yw.nbpts,'h')
+title('nb pts white')
+subplot(4,3,12);hold on 
+plot(Yg.nbpts); plot(Yg.nbpts,'h')
+title('nb pts gray')
+
+
+nv=length(Yw.Y);
+
+%first pass to find the max of x val
+maxx=0;
+for kk=1:nv
+  if max(Yg.hist(kk).v1) > maxx; maxx = max(Yg.hist(kk).v1); end
+  if max(Yw.hist(kk).v1) > maxx; maxx = max(Yw.hist(kk).v1); end
+end
+  
+
+pbf = 6; %plot by figure
+nf = (nv - mod(nv,pbf))/pbf;
+if (mod(nv,pbf)), nf=nf+1;end
+
+for kf =1:nf
+  figure('Position',[360 162 628 786])
+
+  for ks=1:pbf
+    k = ks+(kf-1)*pbf;
+    if (nv >= k)
+      subplot(pbf,1,ks);    hold on
+      
+      val = Yg.hist(k).v1;
+      h   = Yg.hist(k).h1./max(Yg.hist(k).h1);
+      plot(val,h,'g')
+
+      val = Yw.hist(k).v1;
+      h   = Yw.hist(k).h1./max(Yw.hist(k).h1);
+      plot(val,h,'r')
+
+      for kn=1:length(Yn)
+	val = Yn(kn).hist(k).v1;
+	h   = Yn(kn).hist(k).h1./max(Yn(kn).hist(k).h1);
+	plot(val,h,cn{kn})
+      end
+      xlim([0 maxx])
+      title(sprintf ('Volumme %s',P(k,:)))
+    end
+  end
+end
+
+%for k=1:nv
+%  subplot(nv,1,k)
+%  axis([min(minx) max(maxx) 0 max(maxy)])
+%end
+
+
+if exist('vlines')
+  figure(hf)
+
+  for ki=1:12
+    subplot(4,3,ki)
+    yl=ylim;
+    hold on
+    for kk=1:length(vlines)
+      plot([vlines(kk),vlines(kk)],yl,'k')
+    end
+    
+  end
+  
+end

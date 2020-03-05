@@ -1,0 +1,48 @@
+function out = do_fsl_copy_hdr(fref,fmove,par)
+
+if ~exist('par'),par ='';end
+
+defpar.sge=0;
+%defpar.fsl_output_format = 'NIFTI_GZ'; %ANALYZE, NIFTI, NIFTI_PAIR, NIFTI_GZ
+
+
+
+par = complet_struct(par,defpar);
+
+for nbs=1:length(fref)
+    fo = cellstr(char(fmove(nbs)));
+    for nbmove = 1:length(fo)
+        cmd = sprintf('fslcpgeom %s %s -d',fref{nbs},fref{nbmove})
+        
+        if par.sge
+    end
+    
+end
+
+
+fo = cellstr(char(fo));
+
+cmd = sprintf('export FSLOUTPUTTYPE=%s;fslmaths %s -nan -thr 0',par.fsl_output_format,fo{1});
+
+for k=2:length(fo)
+    cmd = sprintf('%s -add  %s -nan ',cmd,fo{k});
+end
+
+cmd = sprintf('%s %s',cmd,outname);
+
+cmd = sprintf('%s\nfslmaths %s -div  %d %s -odt float',cmd,outname,length(fo),outname);
+
+job{1}=cmd;
+
+ext='';
+switch par.fsl_output_format
+    case 'NIFTI_GZ'
+        ext = '.nii.gz';
+    case 'NIFTI'
+        ext = '.nii';
+    case ('NIFTI_PAIR')
+        ext = '.img';
+end
+out = [outname ext];
+
+do_cmd_sge(job,par)

@@ -1,0 +1,15 @@
+%-----------------------------------------------------------------------
+% Job configuration created by cfg_util (rev $Rev: 4252 $)
+%-----------------------------------------------------------------------
+matlabbatch{1}.spm.tools.dartel.initial.matnames = {
+                                                    '/servernas/images5/petiet/analyse1/2011_10_03_Pourquie_OM_Het_5/vox17_T2_swap/dartel2/v17_sPourquieOMHet5-1048577-00001-000001_seg_sn.mat'
+                                                    '/servernas/images5/petiet/analyse1/2011_11_09_Pourquie_WT_14/vox17_T2_swap/dartel2/v17_sPourquieWT14-393217-00001-000001_seg_sn.mat'
+                                                    };
+matlabbatch{1}.spm.tools.dartel.initial.odir = {'/servernas/images5/petiet/analyse1/tpm_mouse/dartel2_swap/'};
+matlabbatch{1}.spm.tools.dartel.initial.bb = [NaN NaN NaN
+                                              NaN NaN NaN];
+matlabbatch{1}.spm.tools.dartel.initial.vox = 1.5;
+matlabbatch{1}.spm.tools.dartel.initial.image = 0;
+matlabbatch{1}.spm.tools.dartel.initial.GM = 1;
+matlabbatch{1}.spm.tools.dartel.initial.WM = 1;
+matlabbatch{1}.spm.tools.dartel.initial.CSF = 0;

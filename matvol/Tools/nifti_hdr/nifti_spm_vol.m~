@@ -1,0 +1,16 @@
+function vol = nifti_spm_vol(fname)
+
+
+[PATHSTR,NAME1,EXT] = fileparts(fname);
+
+if(strcmp(EXT,'.gz'))
+    t=tempname
+    command = sprintf('sh -c ". ${FSLDIR}/etc/fslconf/fsl.sh; FSLOUTPUTTYPE=NIFTI; export FSLOUTPUTTYPE; $FSLDIR/bin/fslmaths %s %s;"\n', fname, t);
+    system(command);
+    
+    vol = spm_vol([t '.nii']);
+else
+    vol = spm_vol(fname);
+end
+
+delete([tmpname,'.hdr']);

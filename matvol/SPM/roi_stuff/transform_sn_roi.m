@@ -1,0 +1,94 @@
+function og = transform_sn_roi(sn_roi,VY)
+
+  
+[p_img,f_img,e_img]=fileparts(VY.fname);  
+
+[pr,fr,er] = fileparts(sn_roi);  
+
+Proi = fullfile(p_img,[fr,'_wi2_',f_img,e_img]);
+Proi_hdr = fullfile(p_img,[fr,'_wi2_',f_img,'.hdr']);
+Proi_mat = fullfile(p_img,[fr,'_wi2_',f_img,'_roi.mat']);
+
+sn_roi_img=fullfile(pr,[fr,'.img']);
+
+if ~exist(sn_roi_img)
+  fprintf('%s%s\n','First time so compute the image associate with the roi :',sn_roi);
+  sn_roi_o = maroi('load', sn_roi);
+  ow = maroi_matrix(sn_roi_o);
+  do_write_image(ow,sn_roi_img);
+end
+
+
+if ~exist(Proi_mat)
+
+  fprintf('%s%s\n','First time so compute the inverse normalisation ',Proi);
+
+  %get a unique name to create a directory to work in
+  s=sprintf('%f',datenum(clock));
+  mkdir (s);
+  s=fullfile(pwd,s);
+  
+  sn_roi_img = fullfile(pr,[fr,'.img']);
+  sn_roi_hdr = fullfile(pr,[fr,'.hdr']);
+
+  copyfile(sn_roi_img,s);  copyfile(sn_roi_hdr,s);
+  
+  sn_roi_img = fullfile(s,[fr,'.img']);
+
+  sn_roi_img_inv = fullfile(s,['w',fr,'.img']);
+  sn_roi_img_inv_hdr = fullfile(s,['w',fr,'.hdr']);
+
+
+  inv_seg = fullfile(p_img,[f_img '_seg_inv_sn.mat']);
+  inv_img = fullfile(p_img,['iy_' f_img '.nii']);
+  
+  
+  if exist(inv_seg)
+    load('write_norm.mat');
+    jobs{1}.spatial{1}.normalise{1}.write(1).subj.matname{1} = inv_seg;
+    jobs{1}.spatial{1}.normalise{1}.write(1).subj.resample{1} = sn_roi_img;
+    jobs{1}.spatial{1}.normalise{1}.write(1).roptions.interp=0;
+
+  elseif exist(inv_img)
+    jobs{1}.spm.util.defs.comp{1}.def{1} = inv_img;
+    jobs{1}.spm.util.defs.fnames =cellstr( sn_roi_img);
+    jobs{1}.spm.util.defs.savedir.savesrc = 1;
+    jobs{1}.spm.util.defs.interp = 0;    
+  
+  else
+      error('no normalization done ..._n')
+  end
+
+  spm_jobman('run',jobs);
+      
+  movefile(sn_roi_img_inv,Proi);  
+  movefile(sn_roi_img_inv_hdr,Proi_hdr);
+
+
+  %transform the image into matrix roi
+  
+  seuil = '0.8';
+
+  func=['img>' seuil];
+  %compute gray roi
+  og = maroi_image(struct('vol', spm_vol(Proi), 'binarize',1,...
+			 'func', func'));
+  og = maroi_matrix(og);
+  
+  fprintf('Volume of unnormalize roi %f \n',volume(og))
+  
+  d = ['rrr',f_img]; l = d;  d = [d ' func: ' func];  l = [l '_f_' func];
+  og = descrip(og,d);  og = label(og,l);
+
+  roi_fname = source(og);
+  saveroi(og, roi_fname);
+%  marsbar('saveroi',og,'nn');
+  
+  delete(Proi);delete(Proi_hdr);
+  rmdir(s,'s');
+  
+else
+  og = maroi('load',Proi_mat);
+end
+
+og = spm_hold(og,0);

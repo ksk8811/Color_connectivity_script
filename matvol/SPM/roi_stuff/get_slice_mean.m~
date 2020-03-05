@@ -1,0 +1,351 @@
+
+function get_slice_mean(in_dir,seuil,text_file,skip,do_plot,skip_slice)
+%function get_slice_mean(in_dir,seuil,text_file,skip,do_plot,skip_slice)
+
+par.verbose=0;
+numstd = seuil;
+first_slice=1;
+do_covariance = 0;
+
+select_img = '^f.*.img'; %if you have nifti img images
+%select_img = 'x.*.nii'; %if you have nifti img images
+if ~exist('seuil') ,	seuil = 0.2;end
+if ~exist('skip'),  skip=-11; end   % skip the first image which is the B0
+if ~exist('do_plot'),  do_plot=1; end
+if ~exist('skip_slice'); skip_slice=[]; end
+    
+if ~exist('text_file')
+    text_file='Bad_Slice_resume.csv';  % file to write the bad slices (in the curent dir
+end
+if ~exist('in_dir')
+    in_dir = get_subdir_regex;
+end
+
+if ischar(in_dir)
+    in_dir=cellstr(in_dir);
+end
+
+if exist('text_file')
+    fid = fopen(text_file,'a+');
+    fprintf(fid,'\nProtocol,date,datefile,Sujet,Series,num of dir,num of slice');
+    fprintf(fid,',mean mean,mean std ,max sdt,meanmeanfond,mean std fond,max std fond,mean stdfond,mean std varfond,max std varfond');
+    if do_covariance
+        fprintf(fid,',Vol%.2f std,Sli%.2f std',numstd,numstd);
+    end
+    fprintf(fid,',VolArt,SliceArt');
+    fprintf(fid,',VmeanFond min max,V Fond min,S Fond min,V Fond max,S MeanFondMax');
+    fprintf(fid,',VvarFond,SvarFond');    
+    fprintf(fid,',Vol%.2f,Sli%.2f,VmeanTotMin,Smin,VmeanTotMax,S_max,the worst min , the worst max',abs(seuil),abs(seuil));
+    if do_covariance, fprintf(fid,',Vol std'); end
+    fprintf(fid,',Vol max , Vol min');
+    fprintf(fid,',Vol mean fond max, Vol mean fond min , Vol var fond, Vol art \n');
+end
+
+if skip<0,  skip_auto=1; else skip_auto=0;end
+
+
+for nbdir=1:length(in_dir)
+    
+    ff = get_subdir_regex_files(in_dir(nbdir),select_img,par); ff = cellstr(char(ff));
+    
+    if skip_auto
+        [qs ser]=get_parent_path(in_dir(nbdir));
+        ii=findstr('spm_raw',qs{1});
+        a=[qs{1}([1:ii-1]) 'dicom_raw' qs{1}([ii+7:end])];
+        bval = get_subdir_regex_files(a,[ser{1},'_diffusion_dir_bvals$'],par);
+        if isempty(bval)
+            fprintf('series %s is not a DTI\n',in_dir{nbdir});
+            continue
+        else
+            b=load(bval{1});
+            skip=find(b<100);
+            
+            if length(b)~=length(ff)
+                fprintf('series %s is incomplete\n',in_dir{nbdir});
+                continue
+            end
+        end
+    end
+    
+    VY= spm_vol(char(ff));
+    
+    num_vol = 1:length(VY);
+    
+    if skip
+        VYskip = VY(skip);
+        VY(skip)='';
+        num_vol(skip)='';
+    end
+    
+    dd = dir(in_dir{nbdir});
+    dirdat = dd(1).date;
+    
+    Automask = zeros(VY(1).dim);
+    for k=1:length(VY)
+        Automask = art_automask(VY(k).fname,-1,0) + Automask;
+    end
+    Automask(Automask>1)=1;
+    
+    %ajoute le mask générer par la B0 (pour les yeux)
+    if skip
+        for k=1:length(VYskip)
+            Automask = art_automask(VYskip(k).fname,-1,0) + Automask;
+        end
+        Automask(Automask>1)=1;        
+    end
+    
+    
+    %Automask = art_automask(VY(1).fname,-1,0);
+    M = Automask;
+    for kk=1:size(Automask,3)
+        [i j v] = find(Automask(:,:,kk));
+        mini = min(i)-3; maxi = max(i)+3;
+        if mini<1,mini=min(i); end
+        if maxi>size(Automask,1), maxi = max(i);end
+        %M(mini:maxi,:,kk) = 1;
+
+        minj = min(j)-3; maxj = max(j)+3;
+        if minj<1,minj=min(j); end
+        if maxj>size(Automask,2), maxj = max(j);end
+        M(mini:maxi,minj:maxj,kk) = 1;
+        
+    end
+    
+    Automask = M;
+    
+    clear slice_mean;
+    if ~isempty(VY)
+        slice_mean = zeros(length(first_slice:VY(1).dim(3)),length(VY));
+        slice_mean_fond = slice_mean;slice_var_fond = slice_mean;
+        
+        tic
+        for nb_vol=1:length(VY)
+            for j = first_slice:VY(nb_vol).dim(3)
+                Mi      = spm_matrix([0 0 j]);
+                X       = spm_slice_vol(VY(nb_vol),Mi,VY(nb_vol).dim(1:2),0);
+                Xfond = X .*(1-Automask(:,:,j));
+                Xbrain = X .*(Automask(:,:,j));
+                slice_mean(j,nb_vol) = mean(X(:));
+                slice_mean_fond(j,nb_vol) = mean(Xfond(Xfond>0));
+%                 slice_mean_brain(j,nb_vol) = mean(Xbrain(Xbrain>0));
+                slice_var_fond(j,nb_vol) = std(Xfond(Xfond>0));
+                %slice_rician(j,nb_vol) = RicianSTD2D(X);
+            end
+        end
+        toc
+        
+                
+        bb  = std(slice_mean(first_slice:end,:),0,2);
+        bbmf = std(slice_mean_fond(first_slice:end,:),0,2);
+        bbvf = std(slice_var_fond(first_slice:end,:),0,2);
+        
+        Mbb   = mean(mean(slice_mean(first_slice:end,:)));
+        Mbbmf = mean(mean(slice_mean_fond(first_slice:end,:)));
+        Mbbvf = mean(mean(slice_var_fond(first_slice:end,:)));
+
+        %skip slice, just put a unique value, so no variation
+        slice_mean(skip_slice,:) = 1;
+        slice_mean_fond(skip_slice,:) = 1;
+        slice_var_fond(skip_slice,:) = 1;
+                
+        aa=mean(slice_mean,2);        aa=repmat(aa,[1, size(slice_mean,2)]);
+        slice_mean = slice_mean./aa;
+        aa=mean(slice_mean_fond,2);        aa=repmat(aa,[1, size(slice_mean_fond,2)]);
+        slice_mean_fond = slice_mean_fond./aa;
+        aa=mean(slice_var_fond,2);        aa=repmat(aa,[1, size(slice_var_fond,2)]);
+        slice_var_fond = slice_var_fond./aa;
+%         aa=mean(slice_mean_brain,2);        aa=repmat(aa,[1, size(slice_mean_brain,2)]);
+%         slice_mean_brain = slice_mean_brain./aa;
+        
+        
+        if do_plot
+            figure
+            title(in_dir{nbdir})
+            subplot(3,1,1);            plot(slice_mean);            title('mean'); grid on;
+            subplot(3,1,2);            plot(slice_mean_fond);            title('mean fond');grid on;
+            subplot(3,1,3);            plot(slice_var_fond);            title('var fond');    grid on;                 
+            %subplot(4,1,4);            plot(slice_rician);            title('rician noise');    grid on;               
+        end
+        
+        [indSpos,indVpos,v]=find(slice_mean>(1+seuil));
+        [indSneg,indVneg,v]=find(slice_mean<(1-seuil));
+        
+        [indS_mean_fond_pos,indV_mean_fond_pos,v]=find(slice_mean_fond>(1+seuil));
+        [indS_mean_fond_neg,indV_mean_fond_neg,v]=find(slice_mean_fond<(1-seuil));
+        [indS_var_fond,indV_var_fond,v]=find(slice_var_fond>(1+seuil));
+        
+        
+        %[allmeancov ind2V ind2S indallV] =  get_vol_covariance(VY,numstd);
+        if do_covariance
+            [allmeancov ind2V ind2S indallV] =  get_vol_covariance(VY,numstd,first_slice);
+        end
+        
+        [indartV indartS] = do_art_slice(VY,10);
+        
+        
+        %get_indice before skiping B0
+        indVokpos = num_vol(indVpos);        indVokneg = num_vol(indVneg);
+        indVok_mean_fond_pos = num_vol(indV_mean_fond_pos) ; indVok_mean_fond_neg = num_vol(indV_mean_fond_neg) ; 
+        indVok_var_fond = num_vol(indV_var_fond) ;
+        indartVok = num_vol(indartV);
+        
+        if do_covariance
+            ind2Vok = num_vol(ind2V);            Uind2V = unique(ind2V);
+        end
+        
+        UindartV = unique(indartV);
+        
+        UindV = unique([indVpos ;indVneg]);
+        UindVneg = unique(indVneg);        UindVpos = unique(indVpos);
+        UindV_mean_fond = unique([indV_mean_fond_pos;indV_mean_fond_neg]); 
+        UindV_mean_fond_neg = unique(indV_mean_fond_neg); 
+        UindV_mean_fond_pos = unique(indV_mean_fond_pos); 
+        
+        UindV_var_fond = unique(indV_var_fond); 
+        
+        [p]=fileparts(in_dir{nbdir});
+        [p,f1]=fileparts(p);    [p,f2]=fileparts(p);    [p,f3]=fileparts(p);
+        try
+            f22= f2; %f2(12:end);
+            f21=f2(1:10);
+        catch
+            f22=f2;f21=f2;
+        end
+
+        if exist('text_file')
+            fprintf(fid,'\n%s,%s,%s,%s,%s,%d,%d',f3,f21,dirdat,f22,f1,length(VY),VY(1).dim(3));
+             fprintf(fid,',%f,%f,%f,%f,%f,%f,%f,%f,%f',Mbb,median(bb),max(bb),Mbbmf,median(bbmf),max(bbmf),Mbbvf,median(bbvf),max(bbvf));
+             
+            if do_covariance
+                fprintf(fid,',%d,%d',length(Uind2V),length(ind2S));
+            end
+            fprintf(fid,',%d,%d',length(UindartV),length(indartS));
+
+            fprintf(fid,',%d',length(UindV_mean_fond));
+            fprintf(fid,',%d,%d',length(UindV_mean_fond_neg),length(indS_mean_fond_neg));
+            fprintf(fid,',%d,%d',length(UindV_mean_fond_pos),length(indS_mean_fond_pos));
+            fprintf(fid,',%d,%d',length(UindV_var_fond),length(indS_var_fond));
+            
+            fprintf(fid,',%d',length(UindV)); %,length(indSneg)+length(indSpos));
+            fprintf(fid,',%d,%d,%d,%d',length(UindVneg),length(indSneg),length(UindVpos),length(indSpos));
+        end
+        
+        [v,i]= min(slice_mean,[],1) ;
+        [vv iimin]=min(v);
+        [vv jjmin] = min(slice_mean(:,iimin));
+        
+        [v,i]= max(slice_mean,[],1) ;
+        [vv iimax]=max(v);
+        [vv jjmax] = max(slice_mean(:,iimax));
+        
+        
+        %the worst
+        if exist('text_file')
+            fprintf(fid,',min V%d_S%d=%.2f',num_vol(iimin),jjmin,slice_mean(jjmin,iimin));
+            fprintf(fid,',max V%d_S%d=%.2f,',num_vol(iimax),jjmax,slice_mean(jjmax,iimax));
+            if do_covariance
+                for kk=1:length(ind2S)
+                    fprintf(fid,' V%3d_S%3d=%.2f ;',ind2Vok(kk),ind2S(kk),slice_mean(ind2S(kk),ind2V(kk)));
+                end
+                fprintf(fid,',');
+            end
+            for kk=1:length(indSpos)
+                fprintf(fid,' V%d_S%d=%.2f ;',indVokpos(kk),indSpos(kk),slice_mean(indSpos(kk),indVpos(kk)));
+            end
+            fprintf(fid,',');           
+            for kk=1:length(indSneg)
+                fprintf(fid,' V%d_S%d=%.2f ;',indVokneg(kk),indSneg(kk),slice_mean(indSneg(kk),indVneg(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_mean_fond_pos)
+                fprintf(fid,' V%d_S%d=%.2f ;',indVok_mean_fond_pos(kk),indS_mean_fond_pos(kk),slice_mean_fond(indS_mean_fond_pos(kk),indV_mean_fond_pos(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_mean_fond_neg)
+                fprintf(fid,' V%d_S%d=%.2f ;',indVok_mean_fond_neg(kk),indS_mean_fond_neg(kk),slice_mean_fond(indS_mean_fond_neg(kk),indV_mean_fond_neg(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_var_fond)
+                fprintf(fid,' V%d_S%d=%.2f ;',indVok_var_fond(kk),indS_var_fond(kk),slice_var_fond(indS_var_fond(kk),indV_var_fond(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indartS)
+                fprintf(fid,' V%d_S%d=%.2f ;',indartVok(kk),indartS(kk),slice_mean_fond(indartS(kk),indartV(kk)));
+            end
+        end
+        
+    end
+end
+
+
+if exist('text_file')
+    fclose(fid);
+end
+keyboard
+
+return
+
+
+        %%%%%%%%%%%%%%%%%%%%% Mask brain and nois %%%%%%%%%%%%%%%%%%%%
+        if 0
+            [hdr,vv] = niak_read_vol(VY(1).fname);            [hdr,vvb0] = niak_read_vol(char(VY_skip.fname));            vmean = mean(vvb0,4);
+            
+            opt.flag_remove_eyes=1;            %ma=niak_mask_brain(vmean,opt);
+            ma1=niak_mask_brain(vv);            ma1=niak_dilate_mask(ma1,26,4);            ma2=niak_mask_brain(vmean);            
+            ma2=niak_dilate_mask(ma2,26,4);       ma_brain=niak_mask_brain(vmean,opt);            vnoise=ones(size(ma2));
+            for k=1:size(ma2,3)
+                [i,j,v] = find(ma2(:,:,k)==1);                [ii,jj,v] = find(ma1(:,:,k)==1);                vnoise(min([min(i) min(ii)]):max([max(i) max(ii)]),:,k)=0;
+            end            
+            n_size = length(find(vnoise==1))./ prod(size(vnoise))*100;            b_size = length(find(ma_brain==1))./ prod(size(vnoise))*100;
+        end
+        if do_plot
+            %      figure; plot(allmeancov);      title(['Vol cov ' in_dir{nbdir}])
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+
+plot([1 60],repmat((mean(allmeancov(:,3)))-3*std(allmeancov(:,3)),1,2))
+
+for k=1:length(ind2S)
+    figure
+    hold on
+    plot(allmeancov(:,ind2S(k)))
+    hold on
+    plot([1 60],repmat((mean(allmeancov(:,ind2S(k))))-3*std(allmeancov(:,ind2S(k))),1,2),'g')
+    %plot([1  60],repmat((mean(allmeancov(:,ind2S(k))))-3.5*std(allmeancov(:,ind2S(k))),1,2),'r')
+    plot([1  60],repmat((mean(allmeancov(:,ind2S(k))))-0.1*mean(allmeancov(:,ind2S(k))),1,2),'r')
+end
+
+
+
+
+if 0
+    ind2V=[];ind2S=[];
+    for kk=1:length(bb)
+        if seuil<0
+            aaa = find(slice_mean(kk,:)>(1+numstd*bb(kk)/100));
+        else
+            aaa = find(slice_mean(kk,:)<(1+numstd*bb(kk)/100));
+        end
+        ind2V =[ind2V aaa ];
+        ind2S = [ind2S ones(1,length(aaa))*kk];
+    end
+end
+
+figure 
+hold on
+ref=69;
+clear am av
+for nb_vol = (ref-2):(ref+2)
+    Mi      = spm_matrix([0 0 j]);
+    X       = spm_slice_vol(VY(nb_vol),Mi,VY(nb_vol).dim(1:2),0);
+    Xfond = X .*(1-Automask(:,:,j));
+    aa=Xfond(Xfond>0);
+    plot(repmat(nb_vol-ref+3,size(aa)), aa,'.');
+    am(nb_vol-ref+3)=mean(aa);
+    av(nb_vol-ref+3)=std(aa);
+end
+
+errorbar(am,av)
+

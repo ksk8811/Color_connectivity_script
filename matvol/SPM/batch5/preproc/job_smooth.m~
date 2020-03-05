@@ -1,0 +1,37 @@
+function  matlabbatch = job_smooth(fi,par)
+%old version
+%function  matlabbatch = job_write_norm(mat,fi,vox,interp,prefix,modulation)
+
+if ~exist('par')
+    par='';
+end
+
+def_par.smooth = [8 8 8];
+def_par.prefix = 's';
+def_par.sge = 0;
+def_par.jobname='spm_smooth';
+def_par.walltime = '00:30:00';
+
+
+par = complet_struct(par,def_par);
+
+
+matlabbatch{1}.spm.spatial.smooth.data = cellstr(char(fi));
+matlabbatch{1}.spm.spatial.smooth.fwhm = par.smooth;
+matlabbatch{1}.spm.spatial.smooth.dtype = 0;
+matlabbatch{1}.spm.spatial.smooth.prefix = par.prefix;
+
+if par.sge
+    
+    for k=1:length(fi)
+        
+        matlabbatch{1}.spm.spatial.smooth.data = cellstr(char(fi(k)));
+        
+        j=matlabbatch;
+        cmd = {'spm_jobman(''run'',j)'};
+        varfile = do_cmd_matlab_sge(cmd,par);
+        save(varfile{1},'j');
+    end
+end
+
+

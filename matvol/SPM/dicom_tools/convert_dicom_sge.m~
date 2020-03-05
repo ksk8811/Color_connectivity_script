@@ -1,0 +1,34 @@
+function convert_dicom_sge(P,spm_dir,par)
+%function convert_dicom(in_dir,spm_dir
+
+if ~exist('par','var'),par ='';end
+
+defpar.output_type = '4D'; % img nii 4D
+defpar.jobname = 'matlab_convert_dicom';
+
+
+par = complet_struct(par,defpar);
+
+
+if ~exist('P')
+    P = spm_select([1 Inf],'dir','Select directories of dicom files','','/nasDicom/dicom_raw');
+end
+
+if ischar(P),P=cellstr(P);end
+
+if ~exist('spm_dir')
+    spm_dir = spm_select([1],'dir','Select directories where to put the converted data');
+end
+
+for nbdir = 1:length(P)
+    
+    dicdir = P(nbdir);
+    
+    mat_cmd = 'convert_dicom(P(nbdir),spm_dir,par)';
+    
+    jf(nbdir) = do_cmd_matlab_sge({mat_cmd},par);
+    jf_variable = jf{nbdir} '_
+    save(jf,dicdir,spm_dir,par)
+    keyboard
+    
+end

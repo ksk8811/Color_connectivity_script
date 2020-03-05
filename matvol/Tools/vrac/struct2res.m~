@@ -1,0 +1,10 @@
+function res = struct2res(s)
+
+name = fieldnames(s(1));
+
+for k=1:length(s)
+    
+  val = getfield(s2,name{k});
+  s1 = setfield(s1,name{k},val);
+end
+res=s1;

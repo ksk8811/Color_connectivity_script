@@ -1,0 +1,48 @@
+function out = do_mrtrix_dtvalue(fi)
+%to compute eigen value from mrtrix dt tensor 
+
+
+
+for k =1:length(fi)
+    fdt = fi{k};
+    
+    [pp ff]=get_parent_path({fdt});
+    
+    cmd = sprintf('cd %s; tensor_metric -num 1 -value el.nii  %s ',pp{1},fdt);
+    unix(cmd);
+    cmd = sprintf('cd %s; tensor_metric -num 2 -value e3.nii  %s ',pp{1},fdt);
+    unix(cmd);
+    cmd = sprintf('cd %s; tensor_metric -num 2 -value e3.nii  %s ',pp{1},fdt);
+    unix(cmd);
+    
+end
+
+
+
+if iscell(outname)
+ if length(fo)~=length(outname)
+   error('the 2 cell input must have the same lenght')
+ end
+ 
+   
+  for k=1:length(outname)
+    do_mrtrix_dtvalue(fo{k},outname{k});
+  end
+  return
+end
+
+
+fo = cellstr(char(fo));
+
+cmd = sprintf('fslmaths %s',fo{1});
+
+for k=2:length(fo)
+  cmd = sprintf('%s -add %s',cmd,fo{k});
+end
+
+cmd = sprintf('%s %s',cmd,outname);
+
+fprintf('writing %s \n',outname)
+unix(cmd);
+
+out = [outname '.nii.gz'];

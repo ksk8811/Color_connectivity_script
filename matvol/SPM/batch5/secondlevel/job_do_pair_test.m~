@@ -1,0 +1,42 @@
+%-----------------------------------------------------------------------
+% Job configuration created by cfg_util (rev $Rev: 4252 $)
+%-----------------------------------------------------------------------
+matlabbatch{1}.spm.stats.factorial_design.dir = {'/servernas/images5/petiet/analyse1/2011_10_14_Pourquie_WT_11/'};
+matlabbatch{1}.spm.stats.factorial_design.des.t2.scans1 = {
+                                                           '/servernas/images5/petiet/analyse1/2011_10_14_Pourquie_WT_11/vox17_T2_swap/dartel2/c3v17_sPourquieWT11-393217-00001-000001.img,1'
+                                                           '/servernas/images5/petiet/analyse1/2011_10_14_Pourquie_WT_11/vox17_T2_swap/dartel2/mv17_sPourquieWT11-393217-00001-000001.img,1'
+                                                           '/servernas/images5/petiet/analyse1/2011_10_14_Pourquie_WT_11/vox17_T2_swap/dartel2/mwc1v17_sPourquieWT11-393217-00001-000001.img,1'
+                                                           };
+matlabbatch{1}.spm.stats.factorial_design.des.t2.scans2 = {
+                                                           '/servernas/images5/petiet/analyse1/2011_10_10_Pourquie_OM_Het_8/vox17_T2_swap/dartel3/mv17_sPourquieOMHet8-851969-00001-000001.img,1'
+                                                           '/servernas/images5/petiet/analyse1/2011_10_10_Pourquie_OM_Het_8/vox17_T2_swap/dartel3/mwc1v17_sPourquieOMHet8-851969-00001-000001.img,1'
+                                                           };
+matlabbatch{1}.spm.stats.factorial_design.des.t2.dept = 0;
+matlabbatch{1}.spm.stats.factorial_design.des.t2.variance = 1;
+matlabbatch{1}.spm.stats.factorial_design.des.t2.gmsca = 0;
+matlabbatch{1}.spm.stats.factorial_design.des.t2.ancova = 0;
+matlabbatch{1}.spm.stats.factorial_design.cov = struct('c', {}, 'cname', {}, 'iCFI', {}, 'iCC', {});
+matlabbatch{1}.spm.stats.factorial_design.masking.tm.tm_none = 1;
+matlabbatch{1}.spm.stats.factorial_design.masking.im = 1;
+matlabbatch{1}.spm.stats.factorial_design.masking.em = {''};
+matlabbatch{1}.spm.stats.factorial_design.globalc.g_omit = 1;
+matlabbatch{1}.spm.stats.factorial_design.globalm.gmsca.gmsca_no = 1;
+matlabbatch{1}.spm.stats.factorial_design.globalm.glonorm = 1;
+matlabbatch{2}.spm.stats.factorial_design.dir = {'/servernas/images5/petiet/analyse1/2011_10_14_Pourquie_WT_11/'};
+matlabbatch{2}.spm.stats.factorial_design.des.pt.pair(1).scans = {
+                                                                  '/servernas/images5/petiet/analyse1/2011_10_17_Pourquie_WT_2/vox17_T2_swap/dartel3/c3v17_sPourquieWT2new-393217-00001-000001.img,1'
+                                                                  '/servernas/images5/petiet/analyse1/2011_10_17_Pourquie_WT_2/vox17_T2_swap/dartel3/mv17_sPourquieWT2new-393217-00001-000001.img,1'
+                                                                  };
+matlabbatch{2}.spm.stats.factorial_design.des.pt.pair(2).scans = {
+                                                                  '/servernas/images5/petiet/analyse1/2011_10_18_Pourquie_OM_Het_18/vox17_T2_swap/v17_sPourquieOMHet18-589825-00001-000001.img,1'
+                                                                  '/servernas/images5/petiet/analyse1/2011_10_18_Pourquie_OM_Het_18/vox17_T2_swap/dartel2/c2v17_sPourquieOMHet18-589825-00001-000001.img,1'
+                                                                  };
+matlabbatch{2}.spm.stats.factorial_design.des.pt.gmsca = 0;
+matlabbatch{2}.spm.stats.factorial_design.des.pt.ancova = 0;
+matlabbatch{2}.spm.stats.factorial_design.cov = struct('c', {}, 'cname', {}, 'iCFI', {}, 'iCC', {});
+matlabbatch{2}.spm.stats.factorial_design.masking.tm.tm_none = 1;
+matlabbatch{2}.spm.stats.factorial_design.masking.im = 1;
+matlabbatch{2}.spm.stats.factorial_design.masking.em = {''};
+matlabbatch{2}.spm.stats.factorial_design.globalc.g_omit = 1;
+matlabbatch{2}.spm.stats.factorial_design.globalm.gmsca.gmsca_no = 1;
+matlabbatch{2}.spm.stats.factorial_design.globalm.glonorm = 1;

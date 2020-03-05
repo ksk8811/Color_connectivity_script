@@ -1,0 +1,10 @@
+function fo = change_file_extension(fi,ext)
+
+for nb=1:length(fi)
+
+[pp ff ee] = fileparts(fi{nb});
+if strcmp(ee,
+fo{nb} = fullfile(pp,[ff,ext]);
+
+end
+

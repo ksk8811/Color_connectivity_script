@@ -1,0 +1,30 @@
+%- Setting SPM5 batch's path
+%-------------------------------------------------------
+p = fileparts(mfilename('fullpath'));
+
+addpath(p,'-BEGIN')
+addpath(fullfile(p,'proto_def'),'-BEGIN')
+addpath(fullfile(p,'preproc'),'-BEGIN')
+addpath(fullfile(p,'firstlevel'),'-BEGIN')
+addpath(fullfile(p,'secondlevel'),'-BEGIN')
+addpath(fullfile(p,'tools'),'-BEGIN');
+addpath(fullfile(p,'retino'),'-BEGIN');
+fprintf('Lcogn SPM5 batch is installed in %s.\n',p);
+
+%- Initializing SPM5 defaults)
+%-------------------------------------------------------
+try
+	spmver = spm('ver');
+	if ~strcmp(spmver,'SPM5')
+		error('Wrong SPM version: %s.',spmver);
+	end
+catch
+	error('SPM cannot be found in your Matlab path.');
+end
+spm('defaults','FMRI');
+fprintf('SPM5 is installed in %s.\n',spm('Dir'));
+
+    %- Don't perform initialization again
+    %-------------------------------------------------------
+    isinit = 1;
+

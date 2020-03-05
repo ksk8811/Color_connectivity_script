@@ -1,0 +1,28 @@
+function fo = mask_erode(fin,par)
+%function fo = do_fsl_bin(f,prefix,seuil)
+%if seuil is a vector [min max] min<f<max
+%if seuil is a number f>seuil
+
+
+if ~exist('par','var'),par ='';end
+
+defpar.type = {'erode','dilate'};
+defpar.suffix = '';
+for kk=1:length(defpar.type)
+    defpar.suffix=[defpar.suffix ,'_',defpar.type{kk}];
+end
+defpar.numpass  = 1;
+
+par = complet_struct(par,defpar);
+
+fo = addsufixtofilenames(fin,par.suffix);
+
+for nbf=1:length(fin)
+    
+    [pp ff ] = fileparts(fin{nbf});
+    cmd = sprintf('cd %s',pp);
+    cmd = sprintf('%s\n maskfilter -npass %d %s %s - | maskfilter -npass %d - %s %s',cmd,par.numpass,fin{nbf},par.type{1},par.numpass,par.type{2},fo{nbf});
+    char(cmd)
+%    unix(cmd)
+    
+end

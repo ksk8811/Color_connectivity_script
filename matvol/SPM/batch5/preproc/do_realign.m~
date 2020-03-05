@@ -1,0 +1,87 @@
+function [jobs varargout] = do_realign(ff,parameters,jobs)
+
+%Test if file exist and not redoo
+
+if ~exist('parameters')
+    parameters.realign.type = 'mean_only';
+end
+if ~isfield(parameters.realign,'type'), parameters.realign.type = 'mean_only'; end;
+if ~isfield(parameters.realign,'to_first'), parameters.realign.to_first = 1; end;
+if ~isfield(parameters.realign,'estim_interp '),    parameters.realign.estim_interp =5;end
+if ~isfield(parameters.realign,'estim_quality'),    parameters.realign.estim_quality=1;end
+if ~isfield(parameters.realign,'write_interp'),    parameters.realign.write_interp=4;end
+if ~isfield(parameters,'redo'),    parameters.redo=1;end
+if ~isfield(parameters,'logfile'),    parameters.logfile='';end
+
+
+first = ff{1}(1,:);
+[p f e] = fileparts(first);
+meanfirst = fullfile(p,['mean' f e]);
+
+ffo = ff;
+switch parameters.realign.type
+    case 'mean_and_reslice'
+        ffo = addprefixtofilenames(ffo,'r');
+end
+%add the mean to the frist
+ffo{1}=char([cellstr(char(ffo(1)));{meanfirst}]);
+
+varargout{1} = ffo;
+%check if exist an redo
+
+
+doit=1;
+
+
+if ~exist('jobs')
+    nbjobs = 1;
+else
+    nbjobs = length(jobs) + 1;
+end
+
+if ~parameters.redo
+    if exist(meanfirst)
+        logmsg(parameters.logfile,sprintf('Skipping realign because mean image %s exist',meanfirst));
+        doit=0;
+        
+    end
+end
+
+%setup the job
+
+if doit
+    logmsg(parameters.logfile,sprintf('Realigning %d functional files onto "%s"...',sum(cellfun('size',ff,1)),ff{1}(1,:)));
+    
+    for n=1:length(ff)
+        jobs{nbjobs}.spatial{1}.realign{1}.estwrite.data{n} = cellstr(ff{n});
+    end
+    
+    
+        jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.interp = parameters.realign.estim_interp;
+    else
+        jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.interp = 5;
+    end
+    
+    if isfield(parameters.realign,'estim_quality')
+        jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.quality = parameters.realign.estim_quality;
+    else
+        jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.quality = 1;
+    end
+    
+    
+    switch parameters.realign.type
+        case 'mean_only'
+            jobs{nbjobs}.spatial{1}.realign{1}.estwrite.roptions.which = [0 1]; %- mean image only
+            
+        case 'mean_and_reslice'
+            
+            jobs{nbjobs}.spatial{1}.realign{1}.estwrite.roptions.which = [2 1]; %-  mean and resliceimage only
+    end
+    
+    switch parameters.realign.to_first
+        case 1
+            jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.rtm = 0;
+        case 0
+            jobs{nbjobs}.spatial{1}.realign{1}.estwrite.eoptions.rtm = 1;
+    end
+end

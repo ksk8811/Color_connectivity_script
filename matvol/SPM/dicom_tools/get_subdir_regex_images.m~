@@ -1,0 +1,21 @@
+function [o ] = get_subdir_regex_images(indir,reg_ex,p)
+
+if ~exist('p'), p=struct;end
+
+reg_ex_img = addsufixtofilenames(reg_ex,'.*img');
+
+if isnumeric(p)
+    aa=p;clear p
+    p.wanted_number_of_file = aa;
+    p.verbose=0;
+end
+
+p.noerror=1
+
+
+if isempty(o)
+    reg_ex_img = addsufixtofilenames(reg_ex,'.*nii');
+    
+    o = get_subdir_regex_files(indir,reg_ex_img,p);
+    
+end

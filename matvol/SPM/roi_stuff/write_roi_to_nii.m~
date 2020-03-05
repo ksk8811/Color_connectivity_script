@@ -1,0 +1,13 @@
+function write_roi_to_nii(P)
+
+if ~exist('P')
+  P = spm_select([1 Inf],'mat','Select ROI to convert in ','',pwd);
+end
+
+for nr=1:size(P,1)
+  roi = maroi('load',deblank(P(nr,:)));
+  roi = maroi_matrix(roi);
+  roi_img = P(nr,:);
+  roi_img(end-3:end) = 'img';
+  
+  do_write_image(ow,sn_roi_img);

@@ -1,0 +1,14 @@
+function write_res_to_csv(c,resname)
+
+
+
+
+fid = fopen(resname,'w+');
+
+for i
+write_res_summary_to_csv(conc,fid,field_list,std_abs);
+
+
+
+  
+fclose(fid);

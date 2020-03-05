@@ -1,0 +1,34 @@
+function change_vx_size(voxn)
+
+if ~exist('voxn')
+  voxn=[-2.5 2.5 2.5]
+end
+
+flags = struct('interp',1,'mask',0,'mean',0,'which',1,'wrap',[0 0 0]',...
+                   'prefix','r');
+
+P = spm_select([1 Inf],'image','Select image ','',pwd);
+
+v=spm_vol(P)
+
+for k=1:length(v)
+
+  mat=v(k).mat;
+  vox = sqrt(sum(mat(1:3,1:3).^2)) 
+
+  pp = spm_imatrix(mat);
+  pp(7:9) = voxn;
+  matN=spm_matrix(pp)
+
+  dimN = v(k).dim.*abs(vox./voxn)
+  dimN = round(dimN);
+
+  %[dimN matN voxN] = mars_new_space(v.dim,v.mat, voxn);
+  v1=v(k)
+  v1.dim = dimN;
+  v1.mat = matN;
+  v1.private.mat = matN;
+  keyboard
+  spm_reslice([v1,v(k)],flags)
+  
+end

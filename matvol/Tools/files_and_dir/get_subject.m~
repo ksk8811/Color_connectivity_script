@@ -1,0 +1,16 @@
+function suj = get_subject(indir,reg_ex,varargin)
+
+
+o = get_subdir_regex(indir,reg_ex);
+
+if length(varargin)>0
+  for ka=1:length(varargin)
+    o = get_subdir_regex(o,varargin{ka});
+  end
+end
+
+% for nbsuj = 1:length(o)
+%     suj(nbsuj).sujdir = o{nbsuj};
+% 
+% end
+ suj.sujdir = o{nbsuj};

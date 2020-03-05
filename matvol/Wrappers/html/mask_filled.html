@@ -1,0 +1,160 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>mask_filled</title><meta name="generator" content="MATLAB 7.11"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-09-15"><meta name="DC.source" content="mask_filled.m"><style type="text/css">
+
+body {
+  background-color: white;
+  margin:10px;
+}
+
+h1 {
+  color: #990000; 
+  font-size: x-large;
+}
+
+h2 {
+  color: #990000;
+  font-size: medium;
+}
+
+/* Make the text shrink to fit narrow windows, but not stretch too far in 
+wide windows. */ 
+p,h1,h2,div.content div {
+  max-width: 600px;
+  /* Hack for IE6 */
+  width: auto !important; width: 600px;
+}
+
+pre.codeinput {
+  background: #EEEEEE;
+  padding: 10px;
+}
+@media print {
+  pre.codeinput {word-wrap:break-word; width:100%;}
+} 
+
+span.keyword {color: #0000FF}
+span.comment {color: #228B22}
+span.string {color: #A020F0}
+span.untermstring {color: #B20000}
+span.syscmd {color: #B28C00}
+
+pre.codeoutput {
+  color: #666666;
+  padding: 10px;
+}
+
+pre.error {
+  color: red;
+}
+
+p.footer {
+  text-align: right;
+  font-size: xx-small;
+  font-weight: lighter;
+  font-style: italic;
+  color: gray;
+}
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> fo = mask_filled(fin,par)
+<span class="comment">%function fo = do_fsl_bin(f,prefix,seuil)</span>
+<span class="comment">%if seuil is a vector [min max] min&lt;f&lt;max</span>
+<span class="comment">%if seuil is a number f&gt;seuil</span>
+
+
+<span class="keyword">if</span> ~exist(<span class="string">'par'</span>,<span class="string">'var'</span>),par =<span class="string">''</span>;<span class="keyword">end</span>
+
+defpar.suffix = <span class="string">'_filled'</span>;
+
+par = complet_struct(par,defpar);
+
+fo = addsufixtofilenames(fin,par.suffix);
+
+<span class="keyword">for</span> nbf=1:length(fin)
+
+    [pp ff ] = fileparts(fin{nbf});
+
+    cmd = sprintf(<span class="string">'cd %s'</span>,pp);
+    cmd = sprintf(<span class="string">'%s\nfslsplit %s split -x'</span>,cmd,fin{nbf});
+    cmd = sprintf(<span class="string">'%s\nfor i in `ls split*`; do c3d  $i -pad 1x0x0vox 1x0x0vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -x; mv -f sss0001.nii.gz $i; done'</span>,cmd);
+    cmd = sprintf(<span class="string">'%s\n fslmerge -x totoX split*'</span>,cmd);
+
+    cmd = sprintf(<span class="string">'%s\n rm -f sss* split* toto.nii*'</span>,cmd);
+
+    cmd = sprintf(<span class="string">'%s\nfslsplit totoX split -y'</span>,cmd);
+    cmd = sprintf(<span class="string">'%s\nfor i in `ls split*`; do c3d  $i -pad 0x1x0vox 0x1x0vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -y; mv -f sss0001.nii.gz $i; done'</span>,cmd);
+    cmd = sprintf(<span class="string">'%s\nfslmerge -y totoX split*'</span>,cmd);
+
+    cmd = sprintf(<span class="string">'%s\n rm -f sss* split* toto.nii*'</span>,cmd);
+
+    cmd = sprintf(<span class="string">'%s\nfslsplit totoX split -z'</span>,cmd);
+    cmd = sprintf(<span class="string">'%s\nfor i in `ls split*`; do c3d  $i -pad 0x0x1vox 0x0x1vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -z; mv -f sss0001.nii.gz $i; done'</span>,cmd);
+    cmd = sprintf(<span class="string">'%s\nfslmerge -z %s split*'</span>,cmd,fo{nbf});
+
+    cmd = sprintf(<span class="string">'%s\n rm -f sss* split* toto.nii* totoX.nii*'</span>,cmd);
+
+    <span class="comment">%for bug in xdim3 with c3d -pad in z dir</span>
+    cmd = sprintf(<span class="string">'%s\n fslcpgeom %s %s'</span>,cmd,fin{nbf},fo{nbf});
+
+    unix(cmd)
+
+<span class="keyword">end</span>
+</pre><pre class="codeoutput">Input argument "fin" is undefined.
+
+Error in ==&gt; mask_filled at 13
+fo = addsufixtofilenames(fin,par.suffix);
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.11<br></p></div><!--
+##### SOURCE BEGIN #####
+function fo = mask_filled(fin,par)
+%function fo = do_fsl_bin(f,prefix,seuil)
+%if seuil is a vector [min max] min<f<max
+%if seuil is a number f>seuil
+
+
+if ~exist('par','var'),par ='';end
+
+defpar.suffix = '_filled';
+
+par = complet_struct(par,defpar);
+
+fo = addsufixtofilenames(fin,par.suffix);
+
+for nbf=1:length(fin)
+    
+    [pp ff ] = fileparts(fin{nbf});
+    
+    cmd = sprintf('cd %s',pp);
+    cmd = sprintf('%s\nfslsplit %s split -x',cmd,fin{nbf});
+    cmd = sprintf('%s\nfor i in `ls split*`; do c3d  $i -pad 1x0x0vox 1x0x0vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -x; mv -f sss0001.nii.gz $i; done',cmd);
+    cmd = sprintf('%s\n fslmerge -x totoX split*',cmd);
+    
+    cmd = sprintf('%s\n rm -f sss* split* toto.nii*',cmd);
+    
+    cmd = sprintf('%s\nfslsplit totoX split -y',cmd);
+    cmd = sprintf('%s\nfor i in `ls split*`; do c3d  $i -pad 0x1x0vox 0x1x0vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -y; mv -f sss0001.nii.gz $i; done',cmd);
+    cmd = sprintf('%s\nfslmerge -y totoX split*',cmd);
+
+    cmd = sprintf('%s\n rm -f sss* split* toto.nii*',cmd);
+    
+    cmd = sprintf('%s\nfslsplit totoX split -z',cmd);
+    cmd = sprintf('%s\nfor i in `ls split*`; do c3d  $i -pad 0x0x1vox 0x0x1vox 1 -o toto.nii.gz; c3d toto.nii.gz -holefill 1 0 -o toto.nii.gz; fslsplit toto.nii.gz sss -z; mv -f sss0001.nii.gz $i; done',cmd);
+    cmd = sprintf('%s\nfslmerge -z %s split*',cmd,fo{nbf});
+
+    cmd = sprintf('%s\n rm -f sss* split* toto.nii* totoX.nii*',cmd);
+    
+    %for bug in xdim3 with c3d -pad in z dir
+    cmd = sprintf('%s\n fslcpgeom %s %s',cmd,fin{nbf},fo{nbf});
+    
+    unix(cmd)
+    
+end
+
+##### SOURCE END #####
+--></body></html>

@@ -1,0 +1,26 @@
+function matlabbatch = job_paired_ttest(f1,f2,stat_dir)
+
+f1=cellstr(char(f1))
+f2=cellstr(char(f2))
+
+matlabbatch{1}.spm.stats.factorial_design.dir = stat_dir;
+
+for k=1:length(f1)
+    ff = cellstr(char([f1(k)
+matlabbatch{1}.spm.stats.factorial_design.des.pt.pair(k).scans = {
+                                                                  '/servernas/images5/lebranchu/data_retidys/FAtbss/FA/sFA_pre_RETIDYS_01_FA_to_target.nii,1'
+                                                                  '/servernas/images5/lebranchu/data_retidys/FAtbss/FA/sFA_pos_RETIDYS_01_FA_to_target.nii,1'
+                                                                  };
+matlabbatch{1}.spm.stats.factorial_design.des.pt.pair(2).scans = {
+                                                                  '/servernas/images5/lebranchu/data_retidys/FAtbss/FA/sFA_pre_RETIDYS_02_FA_to_target.nii,1'
+                                                                  '/servernas/images5/lebranchu/data_retidys/FAtbss/FA/sFA_pos_RETIDYS_02_FA_to_target.nii,1'
+                                                                  };
+matlabbatch{1}.spm.stats.factorial_design.des.pt.gmsca = 0;
+matlabbatch{1}.spm.stats.factorial_design.des.pt.ancova = 0;
+matlabbatch{1}.spm.stats.factorial_design.cov = struct('c', {}, 'cname', {}, 'iCFI', {}, 'iCC', {});
+matlabbatch{1}.spm.stats.factorial_design.masking.tm.tm_none = 1;
+matlabbatch{1}.spm.stats.factorial_design.masking.im = 1;
+matlabbatch{1}.spm.stats.factorial_design.masking.em = {''};
+matlabbatch{1}.spm.stats.factorial_design.globalc.g_omit = 1;
+matlabbatch{1}.spm.stats.factorial_design.globalm.gmsca.gmsca_no = 1;
+matlabbatch{1}.spm.stats.factorial_design.globalm.glonorm = 1;

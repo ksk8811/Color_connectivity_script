@@ -1,0 +1,425 @@
+
+function get_slice_mean_cenir(in_dir,par)
+%function get_slice_mean(in_dir,seuil,text_file,skip,do_plot,skip_slice)
+
+if ~exist('par','var'),par ='';end
+
+defpar.skip = 0;
+defpar.do_plot = 0;
+defpar.skip_slice=[];
+defpar.select_img = '^f';
+defpar.do_covariance = 0;
+defpar.outdir = '';
+defpar.seuil = 0.3;
+defpar.do_delete = 0;
+defpar.text_file = 'Bad_Slice_resume.csv';
+
+par = complet_struct(par,defpar);
+
+seuil = par.seuil
+skip = par.skip;
+do_plot = par.do_plot;
+skip_slice = par.skip_slice;
+do_covariance = par.do_covariance;
+text_file = par.text_file;   
+numstd = seuil;
+first_slice=1;
+
+
+if ~exist('in_dir')
+    in_dir = get_subdir_regex;
+end
+
+if ischar(in_dir)
+    in_dir=cellstr(in_dir);
+end
+
+if exist('text_file','var')
+    if exist(text_file,'file')
+        fid = fopen(text_file,'a+');
+    else
+        fid = fopen(text_file,'w+');
+        fprintf(fid,'\nProtocol,date,datefile,Sujet,Series,num of dir,num of slice');
+        fprintf(fid,',mean mean,mean std ,max sdt,meanmeanfond,mean std fond,max std fond,mean stdfond,mean std varfond,max std varfond');
+        if do_covariance
+            fprintf(fid,',Vol%.2f std,Sli%.2f std',numstd,numstd);
+        end
+        fprintf(fid,',VolArt,SliceArt');
+        fprintf(fid,',VmeanFond min max,V Fond min,Slice,V Fond max,Slice');
+        fprintf(fid,',VvarFond,Slice');
+        fprintf(fid,',Vol%.2f,VmeanTotMin,Smin,VmeanTotMax,S_max,the worst min , the worst max',abs(seuil));
+        if do_covariance, fprintf(fid,',Vol std'); end
+        fprintf(fid,',Vol max , Vol min');
+        fprintf(fid,',Vol mean fond max, Vol mean fond min , Vol var fond, Vol art \n');
+    end
+end
+
+for nbdir=1:length(in_dir)
+    
+    ff = get_subdir_regex_images(in_dir(nbdir),par.select_img);
+        
+   
+    [ppp fff ext] = fileparts(ff{1}(1,:));    
+    if strcmp(ext,'.gz'),        ff=unzip_volume(ff);   fforig=ff; end
+    
+    %%%%%%%%copy if needed and do realign
+    if ~isempty(par.outdir)
+        
+       if strcmp(ext,'.img')
+           ff=r_movefile(ff,par.outdir{1},'link');
+           fhdr = get_subdir_regex_files(in_dir(nbdir),'^f.*hdr');
+           fhdr = r_movefile(fhdr,par.outdir{1},'copy');
+       else
+           ff=r_movefile(ff,par.outdir{1},'copy');
+       end
+    end
+    
+    par.realign.write_interp =0; par.realign.type = 'mean_and_reslice'; par.redo=0;
+    j = do_realign(ff,par)    
+    if ~isempty(j), spm_jobman('run',j);end
+    
+    %your are finish with reading orig data
+    if strcmp(ext,'.gz')
+        gzip_volume(fforig);
+    end
+    
+    if par.do_delete
+        if  ~isempty(par.outdir)
+            do_delete(ff,0);
+            if strcmp(ext,'.img'),     do_delete(fhdr,0);      end
+        end
+    end
+    
+    ff = addprefixtofilenames(ff,'r');
+    if strcmp(ext,'.img'),     fhdr =addprefixtofilenames(fhdr,'r');      end
+    ff = cellstr(char(ff));
+    
+    %%%%%%%%%%%%%%%%%%%%
+    VY= spm_vol(char(ff));
+
+    if length(VY)<=1
+        fprintf('skip serie single volume %s\n',in_dir{nbdir});
+        continue
+    end
+                
+    num_vol = 1:length(VY);
+    
+    
+    dd = dir(in_dir{nbdir});
+    dirdat = dd(1).date;
+    
+    VYok=VY;
+    if length(VY)>length(ff) %for the 4D files
+        for k=1:length(VY)
+            VY(k).fname = [VY(k).fname ',' num2str(k)];
+        end
+    end
+    
+    if skip
+        VYskip = VY(skip);
+        VY(skip)=''; VYok(skip)='';
+        num_vol(skip)='';
+    end
+    
+    Automask = zeros(VY(1).dim);
+    for k=1:length(VY)
+        Automask = art_automask(VY(k).fname,-1,0) + Automask;
+    end
+    Automask(Automask>1)=1;
+    
+    %ajoute le mask générer par la B0 (pour les yeux)
+    if skip
+        for k=1:length(VYskip)
+            Automask = art_automask(VYskip(k).fname,-1,0) + Automask;
+        end
+        Automask(Automask>1)=1;
+    end
+        
+    %arggg
+    VY=VYok;
+
+    [indartV indartS] = do_art_slice(VY,10);
+
+    %Automask = art_automask(VY(1).fname,-1,0);
+    M = Automask; skip_slice=[];
+    for kk=1:size(Automask,3)
+        [i j v] = find(Automask(:,:,kk));
+        mini = min(i)-3; maxi = max(i)+3;
+        if mini<1,mini=min(i); end
+        if maxi>size(Automask,1), maxi = max(i);end
+        %M(mini:maxi,:,kk) = 1;
+        
+        minj = min(j)-3; maxj = max(j)+3;
+        if minj<1,minj=min(j); end
+        if maxj>size(Automask,2), maxj = max(j);end
+        M(mini:maxi,minj:maxj,kk) = 1;
+        
+        if length(find(M(:,:,kk)))<100
+            skip_slice(end+1) = kk;
+        end
+        
+    end
+    %skip the first and the last slice (
+    skip_slice = [skip_slice 1 size(Automask,3)];
+    
+    Automask = M;
+    
+    clear slice_mean;
+    if ~isempty(VY)
+        slice_mean = zeros(length(first_slice:VY(1).dim(3)),length(VY));
+        slice_mean_fond = slice_mean;slice_var_fond = slice_mean;
+        
+        tic
+        for nb_vol=1:length(VY)
+            for j = first_slice:VY(nb_vol).dim(3)
+                if  any(skip_slice==j) %skip slice are constant value
+                    slice_mean(j,nb_vol) = 1;
+                    slice_mean_fond(j,nb_vol) = 1;
+                    slice_var_fond(j,nb_vol) = 1;
+                else
+                    
+                    Mi      = spm_matrix([0 0 j]);
+                    X       = spm_slice_vol(VY(nb_vol),Mi,VY(nb_vol).dim(1:2),0);
+                    Xfond = X .*(1-Automask(:,:,j));
+                    %Xbrain = X .*(Automask(:,:,j));
+                    slice_mean(j,nb_vol) = mean(X(:));
+                    slice_mean_fond(j,nb_vol) = mean(Xfond(Xfond>0));
+                    %                 slice_mean_brain(j,nb_vol) = mean(Xbrain(Xbrain>0));
+                    slice_var_fond(j,nb_vol) = std(Xfond(Xfond>0));
+                    %slice_rician(j,nb_vol) = RicianSTD2D(X);
+                end
+            end
+        end
+        toc
+        
+        
+        bb   = nanstd(slice_mean(first_slice:end,:),0,2);
+        bbmf = nanstd(slice_mean_fond(first_slice:end,:),0,2);
+        bbvf = nanstd(slice_var_fond(first_slice:end,:),0,2);
+        
+        Mbb   = nanmean(nanmean(slice_mean(first_slice:end,:)));
+        Mbbmf = nanmean(nanmean(slice_mean_fond(first_slice:end,:)));
+        Mbbvf = nanmean(nanmean(slice_var_fond(first_slice:end,:)));
+        
+        %skip slice, just put a unique value, so no variation
+        slice_mean(skip_slice,:) = 1;
+        slice_mean_fond(skip_slice,:) = 1;
+        slice_var_fond(skip_slice,:) = 1;
+        
+        aa=mean(slice_mean,2);        aa=repmat(aa,[1, size(slice_mean,2)]);
+        slice_mean = slice_mean./aa;
+        aa=mean(slice_mean_fond,2);        aa=repmat(aa,[1, size(slice_mean_fond,2)]);
+        slice_mean_fond = slice_mean_fond./aa;
+        aa=mean(slice_var_fond,2);        aa=repmat(aa,[1, size(slice_var_fond,2)]);
+        slice_var_fond = slice_var_fond./aa;
+        %         aa=mean(slice_mean_brain,2);        aa=repmat(aa,[1, size(slice_mean_brain,2)]);
+        %         slice_mean_brain = slice_mean_brain./aa;
+        
+        
+        if do_plot
+            figure
+            title(in_dir{nbdir})
+            subplot(3,1,1);            plot(slice_mean);            title('mean'); grid on;
+            subplot(3,1,2);            plot(slice_mean_fond);            title('mean fond');grid on;
+            subplot(3,1,3);            plot(slice_var_fond);            title('var fond');    grid on;
+            %subplot(4,1,4);            plot(slice_rician);            title('rician noise');    grid on;
+            
+            if ~isempty(par.outdir)
+                [ee ss] = get_parent_path(par.outdir);
+                fname = fullfile(ee{1},['fig_slice_' ss{1}])
+                set(gcf,'Position',[ 779          67        1138        1057])
+                subplot(3,1,1);set(gca,'YLimMode','manual','YTickLabelMode','manual','YTickMode','manual');
+                subplot(3,1,2);set(gca,'YLimMode','manual','YTickLabelMode','manual','YTickMode','manual');
+                subplot(3,1,3);set(gca,'YLimMode','manual','YTickLabelMode','manual','YTickMode','manual');
+                print( gcf, '-djpeg100','-r 300','-append',fname);            
+
+                close(gcf);
+            end
+            
+        end
+        
+        [indSpos,indVpos,v]=find(slice_mean>(1+seuil));
+        [indSneg,indVneg,v]=find(slice_mean<(1-seuil));
+        
+        [indS_mean_fond_pos,indV_mean_fond_pos,v]=find(slice_mean_fond>(1+seuil));
+        [indS_mean_fond_neg,indV_mean_fond_neg,v]=find(slice_mean_fond<(1-seuil));
+        [indS_var_fond,indV_var_fond,v]=find(slice_var_fond>(1+seuil));
+        
+        
+        %[allmeancov ind2V ind2S indallV] =  get_vol_covariance(VY,numstd);
+        if do_covariance
+            [allmeancov ind2V ind2S indallV] =  get_vol_covariance(VY,numstd,first_slice);
+        end
+        
+        %delete realign data
+        if par.do_delete
+            do_delete(ff,0)
+            if strcmp(ext,'.img'),     do_delete(fhdr,0);      end
+        end
+        
+        %get_indice before skiping B0
+%         indVokpos = num_vol(indVpos);        indVokneg = num_vol(indVneg);
+%         indVok_mean_fond_pos = num_vol(indV_mean_fond_pos) ; indVok_mean_fond_neg = num_vol(indV_mean_fond_neg) ;
+%         indVok_var_fond = num_vol(indV_var_fond) ;
+%         indartVok = num_vol(indartV);
+%         
+        if do_covariance
+            %ind2Vok = num_vol(ind2V);            
+            Uind2V = unique(ind2V);
+        end
+        
+        UindartV = unique(indartV);
+        
+        UindV = unique([indVpos ;indVneg]);
+        UindVneg = unique(indVneg);        UindVpos = unique(indVpos);
+        UindV_mean_fond = unique([indV_mean_fond_pos;indV_mean_fond_neg]); 
+        UindV_mean_fond_neg = unique(indV_mean_fond_neg); 
+        UindV_mean_fond_pos = unique(indV_mean_fond_pos); 
+        
+        UindV_var_fond = unique(indV_var_fond); 
+        
+        [p]=fileparts(in_dir{nbdir});
+        [p,f1]=fileparts(p);    [p,f2]=fileparts(p);    [p,f3]=fileparts(p);
+        try
+            f22= f2; %f2(12:end);
+            f21=f2(1:10);
+        catch
+            f22=f2;f21=f2;
+        end
+
+        if exist('text_file')
+            fprintf(fid,'\n%s,%s,%s,%s,%s,%d,%d',f3,f21,dirdat,f22,f1,length(VY),VY(1).dim(3));
+             fprintf(fid,',%f,%f,%f,%f,%f,%f,%f,%f,%f',Mbb,median(bb),max(bb),Mbbmf,median(bbmf),max(bbmf),Mbbvf,median(bbvf),max(bbvf));
+             
+            if do_covariance
+                fprintf(fid,',%d,%d',length(Uind2V),length(ind2S));
+            end
+            fprintf(fid,',%d,%d',length(UindartV),length(indartS));
+
+            fprintf(fid,',%d',length(UindV_mean_fond));
+            fprintf(fid,',%d,%d',length(UindV_mean_fond_neg),length(indS_mean_fond_neg));
+            fprintf(fid,',%d,%d',length(UindV_mean_fond_pos),length(indS_mean_fond_pos));
+            fprintf(fid,',%d,%d',length(UindV_var_fond),length(indS_var_fond));
+            
+            fprintf(fid,',%d',length(UindV)); %,length(indSneg)+length(indSpos));
+            fprintf(fid,',%d,%d,%d,%d',length(UindVneg),length(indSneg),length(UindVpos),length(indSpos));
+        end
+        
+        [v,i]= min(slice_mean,[],1) ;
+        [vv iimin]=min(v);
+        [vv jjmin] = min(slice_mean(:,iimin));
+        
+        [v,i]= max(slice_mean,[],1) ;
+        [vv iimax]=max(v);
+        [vv jjmax] = max(slice_mean(:,iimax));
+        
+        
+        %the worst
+        if exist('text_file')
+            fprintf(fid,',min V%d_S%d=%.2f',num_vol(iimin),jjmin,slice_mean(jjmin,iimin));
+            fprintf(fid,',max V%d_S%d=%.2f,',num_vol(iimax),jjmax,slice_mean(jjmax,iimax));
+            if do_covariance
+                for kk=1:length(ind2S)
+                    fprintf(fid,' V%3d_S%3d=%.2f ;',num_vol(ind2V(kk)),ind2S(kk),slice_mean(ind2S(kk),ind2V(kk)));
+                end
+                fprintf(fid,',');
+            end
+            for kk=1:length(indSpos)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indVpos(kk)),indSpos(kk),slice_mean(indSpos(kk),indVpos(kk)));
+            end
+            fprintf(fid,',');           
+            for kk=1:length(indSneg)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indVneg(kk)),indSneg(kk),slice_mean(indSneg(kk),indVneg(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_mean_fond_pos)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indV_mean_fond_pos(kk)),indS_mean_fond_pos(kk),slice_mean_fond(indS_mean_fond_pos(kk),indV_mean_fond_pos(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_mean_fond_neg)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indV_mean_fond_neg(kk)),indS_mean_fond_neg(kk),slice_mean_fond(indS_mean_fond_neg(kk),indV_mean_fond_neg(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indS_var_fond)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indV_var_fond(kk)),indS_var_fond(kk),slice_var_fond(indS_var_fond(kk),indV_var_fond(kk)));
+            end
+            fprintf(fid,',');
+            for kk=1:length(indartS)
+                fprintf(fid,' V%d_S%d=%.2f ;',num_vol(indartV(kk)),indartS(kk),slice_mean_fond(indartS(kk),indartV(kk)));
+            end
+        end
+        
+    end
+end
+
+
+if exist('text_file')
+    fclose(fid);
+end
+
+return
+
+
+        %%%%%%%%%%%%%%%%%%%%% Mask brain and nois %%%%%%%%%%%%%%%%%%%%
+        if 0
+            [hdr,vv] = niak_read_vol(VY(1).fname);            [hdr,vvb0] = niak_read_vol(char(VY_skip.fname));            vmean = mean(vvb0,4);
+            
+            opt.flag_remove_eyes=1;            %ma=niak_mask_brain(vmean,opt);
+            ma1=niak_mask_brain(vv);            ma1=niak_dilate_mask(ma1,26,4);            ma2=niak_mask_brain(vmean);            
+            ma2=niak_dilate_mask(ma2,26,4);       ma_brain=niak_mask_brain(vmean,opt);            vnoise=ones(size(ma2));
+            for k=1:size(ma2,3)
+                [i,j,v] = find(ma2(:,:,k)==1);                [ii,jj,v] = find(ma1(:,:,k)==1);                vnoise(min([min(i) min(ii)]):max([max(i) max(ii)]),:,k)=0;
+            end            
+            n_size = length(find(vnoise==1))./ prod(size(vnoise))*100;            b_size = length(find(ma_brain==1))./ prod(size(vnoise))*100;
+        end
+        if do_plot
+            %      figure; plot(allmeancov);      title(['Vol cov ' in_dir{nbdir}])
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+
+plot([1 60],repmat((mean(allmeancov(:,3)))-3*std(allmeancov(:,3)),1,2))
+
+for k=1:length(ind2S)
+    figure
+    hold on
+    plot(allmeancov(:,ind2S(k)))
+    hold on
+    plot([1 60],repmat((mean(allmeancov(:,ind2S(k))))-3*std(allmeancov(:,ind2S(k))),1,2),'g')
+    %plot([1  60],repmat((mean(allmeancov(:,ind2S(k))))-3.5*std(allmeancov(:,ind2S(k))),1,2),'r')
+    plot([1  60],repmat((mean(allmeancov(:,ind2S(k))))-0.1*mean(allmeancov(:,ind2S(k))),1,2),'r')
+end
+
+
+
+
+if 0
+    ind2V=[];ind2S=[];
+    for kk=1:length(bb)
+        if seuil<0
+            aaa = find(slice_mean(kk,:)>(1+numstd*bb(kk)/100));
+        else
+            aaa = find(slice_mean(kk,:)<(1+numstd*bb(kk)/100));
+        end
+        ind2V =[ind2V aaa ];
+        ind2S = [ind2S ones(1,length(aaa))*kk];
+    end
+end
+
+figure 
+hold on
+ref=69;
+clear am av
+for nb_vol = (ref-2):(ref+2)
+    Mi      = spm_matrix([0 0 j]);
+    X       = spm_slice_vol(VY(nb_vol),Mi,VY(nb_vol).dim(1:2),0);
+    Xfond = X .*(1-Automask(:,:,j));
+    aa=Xfond(Xfond>0);
+    plot(repmat(nb_vol-ref+3,size(aa)), aa,'.');
+    am(nb_vol-ref+3)=mean(aa);
+    av(nb_vol-ref+3)=std(aa);
+end
+
+errorbar(am,av)
+

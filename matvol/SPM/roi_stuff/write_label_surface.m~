@@ -1,0 +1,66 @@
+function fo = write_label_surface(surfin,labelin,label,outname,outdir,output_vol)
+%function fo = write_label_surface(surfin,labelin,label,outname,outdir,output_vol)
+
+if ~exist('output_vol')
+    output_vol='';
+else
+    if length(surfin) ~= length(output_vol)
+        error('length of reference to reslice volume should be the same as the input volume')
+    end
+end
+
+
+if ~iscell(surfin)
+    surfin = cellstr(surfin)';
+end
+if ~iscell(outdir)
+    outdir = cellstr(outdir)';
+end
+
+if length(surfin) ~= length(outdir)
+    error('length outdir should be the same as the input volume')
+end
+if length(surfin) ~= length(labelin)
+    error('length labelfile should be the same as the input volume')
+end
+
+
+for num_in = 1:length(surfin)
+    surf = gifti(surfin{num_in});
+    lab = gifti(labelin{num_in});
+
+    vf.faces=surf.faces;
+    vf.vertices=surf.vertices;
+
+    for k=1:length(label)
+        
+        fo{k} = fullfile(outdir{num_in},[outname{k},'.asc']);
+        
+        ll = label{k};
+        vv=zeros(size(lab.cdata));
+        
+        for k=1:lenght(ll)
+            vv = vv + double(lab.cdata==ll(k));
+        end
+        
+        vf.FaceVertexCData = vv;
+        surfwrite(vf,'mysurf.asc');
+        
+    end
+    
+    
+    if ~isempty(output_vol)
+        
+        job = job_reslice(output_vol(num_in),{char(fo)},1,'r_');
+        %spm_jobman('interactive',job);
+        spm_jobman('run',job);
+        
+        for kk=1:length(fo)
+            delete(fo{kk})
+        end
+        
+    end
+    
+end
+
+
